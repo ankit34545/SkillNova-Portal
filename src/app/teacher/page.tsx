@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   GraduationCap,
@@ -15,12 +15,57 @@ import {
   Sparkles,
   BarChart3,
   Clock,
+  Lock,
 } from "lucide-react";
 import AppShell from "@/components/layout/AppShell";
 import Button from "@/components/ui/Button";
+import { useAuth } from "@/lib/auth-context";
 
 export default function TeacherWorkspacePage() {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<"classes" | "doubts" | "materials">("classes");
+  const [cohortData, setCohortData] = useState<any>(null);
+
+  useEffect(() => {
+    async function fetchCohort() {
+      try {
+        const res = await fetch("/api/teacher/cohort", {
+          headers: { "x-skillnova-role": user.role },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setCohortData(data);
+        }
+      } catch {}
+    }
+    fetchCohort();
+  }, [user.role]);
+
+  // Access Control: Block unverified students
+  if (user.role === "student") {
+    return (
+      <AppShell breadcrumbs={[{ label: "Access Denied" }]}>
+        <div className="max-w-xl mx-auto my-12 p-8 rounded-3xl bg-midnight-900 border border-purple-500/30 text-center space-y-4">
+          <div className="w-12 h-12 rounded-2xl bg-purple-500/20 text-purple-400 mx-auto flex items-center justify-center">
+            <Lock className="w-6 h-6" />
+          </div>
+          <h2 className="text-xl font-bold text-white">Faculty & Mentor Access Required</h2>
+          <p className="text-sm text-slate-400 leading-relaxed">
+            Your current account (<span className="text-white font-medium">{user.name}</span>) has student privileges. To host cohort classes, resolve student doubts, or publish syllabus materials, you must sign in as an instructor or administrator.
+          </p>
+          <div className="pt-2">
+            <Link
+              href="/dashboard"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-xs bg-white/10 hover:bg-white/15 text-white transition-colors"
+            >
+              <span>Return to Student Dashboard</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+        </div>
+      </AppShell>
+    );
+  }
 
   const pendingDoubts = [
     {
@@ -86,7 +131,9 @@ export default function TeacherWorkspacePage() {
 
           <div className="p-5 rounded-2xl bg-midnight-900 border border-white/10">
             <p className="text-xs text-slate-400">Unresolved Doubts</p>
-            <p className="text-2xl font-bold text-amber-400 mt-1">2 Pending</p>
+            <p className="text-2xl font-bold text-amber-400 mt-1">
+              {cohortData?.pendingCount ? `${cohortData.pendingCount} Pending` : "2 Pending"}
+            </p>
             <span className="text-[10px] text-amber-500/80 mt-1 block">1 marked urgent</span>
           </div>
 

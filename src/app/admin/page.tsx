@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   Shield,
@@ -15,17 +15,73 @@ import {
   ArrowRight,
   Database,
   Lock,
+  RefreshCw,
 } from "lucide-react";
 import AppShell from "@/components/layout/AppShell";
+import { useAuth } from "@/lib/auth-context";
 
 export default function AdminDashboardPage() {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<"overview" | "users" | "courses" | "audit">("overview");
+  const [dbStatus, setDbStatus] = useState<string>("Checking...");
+  const [userCount, setUserCount] = useState<number>(1248);
+  const [roomCount, setRoomCount] = useState<number>(3);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchMetrics() {
+      try {
+        const res = await fetch("/api/admin/metrics", {
+          headers: { "x-skillnova-role": user.role },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setDbStatus(data.dbHealth === "connected" ? "Connected (Live PostgreSQL)" : "In-Memory / Fallback");
+          if (data.metrics?.totalUsers) setUserCount(data.metrics.totalUsers);
+          if (data.metrics?.activeRooms) setRoomCount(data.metrics.activeRooms);
+        } else {
+          setDbStatus("Access Restricted");
+        }
+      } catch {
+        setDbStatus("Offline");
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchMetrics();
+  }, [user.role]);
+
+  // If student attempts to view admin console, present access denied screen
+  if (user.role === "student") {
+    return (
+      <AppShell breadcrumbs={[{ label: "Access Denied" }]}>
+        <div className="max-w-xl mx-auto my-12 p-8 rounded-3xl bg-midnight-900 border border-rose-500/30 text-center space-y-4">
+          <div className="w-12 h-12 rounded-2xl bg-rose-500/20 text-rose-400 mx-auto flex items-center justify-center">
+            <Lock className="w-6 h-6" />
+          </div>
+          <h2 className="text-xl font-bold text-white">Administrator Access Required</h2>
+          <p className="text-sm text-slate-400 leading-relaxed">
+            Your current account (<span className="text-white font-medium">{user.name}</span>) is signed in with the <strong className="text-cyan-400">Student</strong> role. You do not have permissions to access platform administration or infrastructure metrics.
+          </p>
+          <div className="pt-2">
+            <Link
+              href="/dashboard"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-xs bg-white/10 hover:bg-white/15 text-white transition-colors"
+            >
+              <span>Return to Student Dashboard</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+        </div>
+      </AppShell>
+    );
+  }
 
   const systemMetrics = [
-    { label: "Total Registered Users", value: "1,248", change: "+14% this month" },
-    { label: "Active Live Rooms", value: "3", change: "LiveKit WebRTC healthy" },
-    { label: "PostgreSQL Records", value: "11 Tables", change: "Prisma schema synchronized" },
-    { label: "Server Status", value: "Operational", change: "Next.js App Router 14.2" },
+    { label: "Total Registered Users", value: userCount.toString(), change: "+14% this month" },
+    { label: "Active Live Rooms", value: roomCount.toString(), change: "LiveKit WebRTC healthy" },
+    { label: "PostgreSQL Records", value: "11 Relational Tables", change: dbStatus },
+    { label: "Server Architecture", value: "Next.js 14.2", change: "Prisma 5.22.0 Client" },
   ];
 
   const recentUsers = [

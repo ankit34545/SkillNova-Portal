@@ -79,7 +79,6 @@ export class ClassroomRepository {
           scheduledAt: meeting.scheduledAt ? new Date(meeting.scheduledAt) : null,
           whiteboardPages: {
             create: {
-              id: `page-${meeting.roomId}-1`,
               title: "Main Canvas",
             },
           },
@@ -534,25 +533,36 @@ export class ClassroomRepository {
     stroke: WhiteboardStroke
   ): Promise<WhiteboardStroke> {
     try {
+      const meeting = await prisma.meeting.findUnique({ where: { roomId } });
       let page = await prisma.whiteboardPage.findFirst({
-        where: { id: pageId },
+        where: meeting ? { meetingId: meeting.id } : { id: pageId },
       });
-      if (!page) {
-        const meeting = await prisma.meeting.findUnique({ where: { roomId } });
-        if (meeting) {
-          page = await prisma.whiteboardPage.create({
-            data: {
-              id: pageId,
-              meetingId: meeting.id,
-              title: "Main Canvas",
-            },
-          });
-        }
+      if (!page && meeting) {
+        page = await prisma.whiteboardPage.create({
+          data: {
+            id: pageId,
+            meetingId: meeting.id,
+            title: "Main Canvas",
+          },
+        });
       }
 
       if (page) {
-        await prisma.whiteboardStroke.create({
-          data: {
+        await prisma.whiteboardStroke.upsert({
+          where: { id: stroke.id },
+          update: {
+            pageId: page.id,
+            tool: stroke.tool,
+            color: stroke.color,
+            strokeWidth: stroke.strokeWidth,
+            x: stroke.x,
+            y: stroke.y,
+            width: stroke.width,
+            height: stroke.height,
+            text: stroke.text,
+            pointsJson: stroke.points ? JSON.stringify(stroke.points) : null,
+          },
+          create: {
             id: stroke.id,
             pageId: page.id,
             tool: stroke.tool,
