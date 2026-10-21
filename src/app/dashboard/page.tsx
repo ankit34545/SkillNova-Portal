@@ -16,17 +16,18 @@ import {
   ArrowRight,
   Sparkles,
   BookOpen,
-  Bell,
-  Search,
-  Download,
   PlayCircle,
   ExternalLink,
+  ChevronRight,
+  AlertCircle,
+  Code2,
 } from "lucide-react";
+import AppShell from "@/components/layout/AppShell";
 import Button from "@/components/ui/Button";
 
 export default function StudentDashboardPage() {
   const [activeTab, setActiveTab] = useState<
-    "overview" | "schedule" | "notes" | "doubts" | "materials" | "recordings"
+    "overview" | "schedule" | "notes" | "doubts" | "materials"
   >("overview");
 
   // Enrolled Courses & Progress
@@ -40,6 +41,8 @@ export default function StudentDashboardPage() {
       gradient: "from-purple-500 to-indigo-600",
       liveStatus: "Class Live Now",
       roomId: "ai-eng-live",
+      totalModules: 14,
+      completedModules: 9,
     },
     {
       id: "sys-design",
@@ -50,6 +53,8 @@ export default function StudentDashboardPage() {
       gradient: "from-cyan-500 to-blue-600",
       liveStatus: "Today at 6:30 PM",
       roomId: "sys-design-401",
+      totalModules: 16,
+      completedModules: 7,
     },
     {
       id: "dsa-interview",
@@ -60,6 +65,8 @@ export default function StudentDashboardPage() {
       gradient: "from-pink-500 to-purple-600",
       liveStatus: "Tomorrow at 4:00 PM",
       roomId: "dsa-faang-prep",
+      totalModules: 12,
+      completedModules: 10,
     },
   ];
 
@@ -94,378 +101,351 @@ export default function StudentDashboardPage() {
     },
   ];
 
-  // Resolved & Open Doubts
+  // Doubts with responses
   const doubtHistory = [
     {
       id: "d-1",
-      topic: "Multi-hop vector retrieval with cross-encoder re-ranking",
+      track: "Generative AI",
+      question: "How do we prevent hallucinations during multi-hop hybrid search retrieval?",
       status: "resolved",
-      askedIn: "Generative AI & LLM Systems",
+      mentor: "Dr. Aryan Mehta",
       answer: "Utilize reciprocal rank fusion (RRF) with a re-ranking cross-encoder before context packing.",
-      date: "Oct 19, 2026",
+      date: "Yesterday",
     },
     {
       id: "d-2",
-      topic: "Trade-offs between FP16 vs INT4 quantized embeddings on edge devices",
+      track: "Distributed Systems",
+      question: "What happens if a Raft leader node experiences network partition during commit log write?",
       status: "open",
-      askedIn: "Generative AI & LLM Systems",
-      date: "Oct 19, 2026",
-    },
-    {
-      id: "d-3",
-      topic: "Handling split-brain in network partitions with Raft",
-      status: "resolved",
-      askedIn: "Distributed Systems",
-      answer: "A leader election requires a strict majority (N/2 + 1) votes, preventing minority partitions from electing a leader.",
-      date: "Oct 17, 2026",
+      mentor: "Pending Mentor Review",
+      date: "3 hours ago",
     },
   ];
 
   // Saved Notes
-  const savedNotes = [
+  const classNotes = [
     {
       id: "n-1",
-      title: "Session 4 Key Architecture Takeaways",
-      course: "Generative AI & LLM Systems",
-      updatedAt: "Today",
-      snippet: "Chunking strategy: 512 tokens with 10% overlap. Vector indexing: HNSW with M=16...",
+      title: "RAG Production Architecture Checklist",
+      course: "Generative AI",
+      snippet: "1. Chunking strategy: 512 tokens with 10% overlap.\n2. Vector indexing: HNSW with M=16, efSearch=64...",
+      updated: "2 days ago",
     },
     {
       id: "n-2",
-      title: "Kafka Consumer Groups & Partition Rebalancing",
+      title: "Raft Consensus State Machine Breakdown",
       course: "Distributed Systems",
-      updatedAt: "2 days ago",
-      snippet: "Eager rebalance vs Cooperative Sticky Assignor. Ensuring zero-downtime message consumption...",
-    },
-  ];
-
-  // Learning Materials
-  const materials = [
-    {
-      id: "m-1",
-      title: "Production_RAG_Architecture_Guide.pdf",
-      size: "2.4 MB",
-      type: "PDF Guide",
-      date: "Oct 19",
-    },
-    {
-      id: "m-2",
-      title: "retrieval_agent_pipeline.py",
-      size: "4.2 KB",
-      type: "Python Code",
-      date: "Oct 19",
-    },
-    {
-      id: "m-3",
-      title: "Distributed_Caching_Strategies_v2.pdf",
-      size: "3.8 MB",
-      type: "PDF Slides",
-      date: "Oct 17",
+      snippet: "Leader Election term numbers, Heartbeat intervals, and Log replication invariants...",
+      updated: "4 days ago",
     },
   ];
 
   return (
-    <div className="min-h-screen bg-midnight-950 text-slate-100 flex flex-col">
-      {/* Dashboard Top Header */}
-      <header className="sticky top-0 z-30 border-b border-white/5 bg-midnight-950/80 backdrop-blur-xl">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link href="/" className="flex items-center gap-2">
-              <span className="font-extrabold text-white text-base">SkillNova</span>
-              <span className="font-semibold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-cyan-400 text-sm">
-                Portal
-              </span>
-            </Link>
+    <AppShell breadcrumbs={[{ label: "Student Dashboard" }]}>
+      <div className="space-y-8">
+        {/* Top Welcome Banner */}
+        <div className="relative rounded-3xl p-6 sm:p-8 bg-gradient-to-r from-purple-900/30 via-indigo-900/20 to-midnight-900 border border-purple-500/20 shadow-xl overflow-hidden">
+          <div className="absolute top-0 right-0 w-80 h-80 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
 
-            <div className="hidden sm:flex items-center gap-1 ml-4 pl-4 border-l border-white/10">
-              <button
-                onClick={() => setActiveTab("overview")}
-                className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-colors ${
-                  activeTab === "overview"
-                    ? "bg-purple-600/20 text-purple-300 border border-purple-500/30"
-                    : "text-slate-400 hover:text-white"
-                }`}
-              >
-                Overview
-              </button>
-              <button
-                onClick={() => setActiveTab("schedule")}
-                className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-colors ${
-                  activeTab === "schedule"
-                    ? "bg-purple-600/20 text-purple-300 border border-purple-500/30"
-                    : "text-slate-400 hover:text-white"
-                }`}
-              >
-                Live Classes
-              </button>
-              <button
-                onClick={() => setActiveTab("doubts")}
-                className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-colors ${
-                  activeTab === "doubts"
-                    ? "bg-purple-600/20 text-purple-300 border border-purple-500/30"
-                    : "text-slate-400 hover:text-white"
-                }`}
-              >
-                Doubt History
-              </button>
-              <button
-                onClick={() => setActiveTab("notes")}
-                className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-colors ${
-                  activeTab === "notes"
-                    ? "bg-purple-600/20 text-purple-300 border border-purple-500/30"
-                    : "text-slate-400 hover:text-white"
-                }`}
-              >
-                Saved Notes
-              </button>
+          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 text-xs font-mono mb-3">
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Semester 6 • Campus SDE Track</span>
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+                Welcome back, Arjun 👋
+              </h1>
+              <p className="mt-1 text-slate-300 text-sm max-w-xl">
+                You are on a 12-day coding streak! Your next live masterclass on{" "}
+                <strong className="text-white">RAG Architectures</strong> is happening right now.
+              </p>
             </div>
-          </div>
 
-          <div className="flex items-center gap-3">
-            <Link href="/meet">
-              <Button size="sm" variant="gradient" className="shadow-glow-violet text-xs flex items-center gap-1.5">
-                <Video className="w-3.5 h-3.5" />
+            <div className="flex flex-wrap items-center gap-3">
+              <Link
+                href="/meet/ai-eng-live"
+                className="px-5 py-2.5 rounded-xl font-semibold text-white bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 shadow-glow-cyan text-sm flex items-center gap-2 transition-all transform hover:-translate-y-0.5"
+              >
+                <Video className="w-4 h-4" />
                 <span>Join Live Classroom</span>
-              </Button>
-            </Link>
+              </Link>
 
-            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-purple-500 to-cyan-500 flex items-center justify-center font-bold text-xs text-white">
-              RK
+              <Link
+                href="/courses"
+                className="px-4 py-2.5 rounded-xl font-medium text-slate-200 bg-white/5 hover:bg-white/10 border border-white/10 text-sm transition-colors"
+              >
+                Browse Curricula
+              </Link>
+            </div>
+          </div>
+
+          {/* Quick Metrics Strip */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-8 pt-6 border-t border-white/10">
+            <div>
+              <p className="text-xs text-slate-400">Enrolled Curricula</p>
+              <p className="text-xl font-bold text-white mt-1">3 Tracks</p>
+            </div>
+            <div>
+              <p className="text-xs text-slate-400">Live Attendance</p>
+              <p className="text-xl font-bold text-emerald-400 mt-1">94.8%</p>
+            </div>
+            <div>
+              <p className="text-xs text-slate-400">Coding Labs Solved</p>
+              <p className="text-xl font-bold text-cyan-400 mt-1">48 / 60</p>
+            </div>
+            <div>
+              <p className="text-xs text-slate-400">Mock Interview Score</p>
+              <p className="text-xl font-bold text-purple-400 mt-1">8.9 / 10</p>
             </div>
           </div>
         </div>
-      </header>
 
-      {/* Main Content Container */}
-      <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-        {/* Welcome Banner */}
-        <div className="p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-purple-900/30 via-midnight-900 to-cyan-900/20 border border-white/10 relative overflow-hidden flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-          <div className="relative z-10">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 text-xs font-mono font-medium mb-3">
-              <Sparkles className="w-3 h-3 text-cyan-400" />
-              <span>Winter 2026 Engineering Cohort</span>
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-white">
-              Welcome back, <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-cyan-300">Rohan</span>!
-            </h1>
-            <p className="mt-1 text-slate-300 text-xs sm:text-sm max-w-xl">
-              You are on Track 1 (AI Engineering). Your live lecture on <strong>Production RAG Pipelines</strong> is in progress right now.
-            </p>
-          </div>
-
-          <div className="relative z-10 flex items-center gap-3">
-            <Link href="/meet/ai-eng-live">
-              <Button size="lg" variant="gradient" className="shadow-glow-cyan font-bold text-xs sm:text-sm px-6 py-3 flex items-center gap-2">
-                <Video className="w-4 h-4 animate-pulse" />
-                <span>Join Ongoing Class</span>
-              </Button>
-            </Link>
-          </div>
+        {/* Tab Controls */}
+        <div className="flex items-center gap-2 border-b border-white/10 pb-3 overflow-x-auto">
+          {[
+            { id: "overview", label: "Enrolled Courses", icon: BookOpen },
+            { id: "schedule", label: "Class Schedule", icon: Calendar },
+            { id: "notes", label: "Saved Notes", icon: FileText },
+            { id: "doubts", label: "Doubt Center", icon: HelpCircle },
+          ].map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as any)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-medium transition-colors shrink-0 ${
+                  isActive
+                    ? "bg-purple-600/30 text-white border border-purple-500/40"
+                    : "text-slate-400 hover:text-slate-200 hover:bg-white/5"
+                }`}
+              >
+                <Icon className="w-4 h-4" />
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
         </div>
 
-        {/* Metric Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="p-5 rounded-2xl bg-midnight-900/60 border border-white/10">
-            <div className="flex items-center justify-between text-slate-400 mb-2">
-              <span className="text-xs">Overall Progress</span>
-              <TrendingUp className="w-4 h-4 text-cyan-400" />
-            </div>
-            <div className="text-2xl font-extrabold text-white">68%</div>
-            <span className="text-[11px] text-cyan-400 mt-1 block">On track for Capstone Evaluation</span>
-          </div>
-
-          <div className="p-5 rounded-2xl bg-midnight-900/60 border border-white/10">
-            <div className="flex items-center justify-between text-slate-400 mb-2">
-              <span className="text-xs">Live Attendance</span>
-              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-            </div>
-            <div className="text-2xl font-extrabold text-white">96.4%</div>
-            <span className="text-[11px] text-emerald-400 mt-1 block">27 of 28 sessions attended</span>
-          </div>
-
-          <div className="p-5 rounded-2xl bg-midnight-900/60 border border-white/10">
-            <div className="flex items-center justify-between text-slate-400 mb-2">
-              <span className="text-xs">Doubts Resolved</span>
-              <HelpCircle className="w-4 h-4 text-purple-400" />
-            </div>
-            <div className="text-2xl font-extrabold text-white">14 / 15</div>
-            <span className="text-[11px] text-purple-400 mt-1 block">Avg resolution time: 6 mins</span>
-          </div>
-
-          <div className="p-5 rounded-2xl bg-midnight-900/60 border border-white/10">
-            <div className="flex items-center justify-between text-slate-400 mb-2">
-              <span className="text-xs">Placement Readiness</span>
-              <Award className="w-4 h-4 text-pink-400" />
-            </div>
-            <div className="text-2xl font-extrabold text-white">Tier-1 Ready</div>
-            <span className="text-[11px] text-pink-400 mt-1 block">Target: ₹24+ LPA Roles</span>
-          </div>
-        </div>
-
-        {/* Enrolled Courses & Live Schedule Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left 2 Cols: Enrolled Learning Tracks */}
-          <div className="lg:col-span-2 space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                <BookOpen className="w-4 h-4 text-purple-400" />
-                <span>My Active Enrolled Tracks</span>
-              </h2>
-            </div>
-
-            <div className="space-y-4">
-              {enrolledTracks.map((t) => (
-                <div
-                  key={t.id}
-                  className="p-5 rounded-2xl bg-midnight-900/50 border border-white/10 hover:border-purple-500/40 transition-all flex flex-col justify-between"
+        {/* Tab 1: Overview & Enrolled Courses */}
+        {activeTab === "overview" && (
+          <div className="space-y-8">
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5 text-cyan-400" />
+                  <span>Active Learning Progress</span>
+                </h2>
+                <Link
+                  href="/courses"
+                  className="text-xs text-cyan-400 hover:underline flex items-center gap-1"
                 >
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+                  <span>View All Modules</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </Link>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {enrolledTracks.map((track) => (
+                  <div
+                    key={track.id}
+                    className="p-5 rounded-2xl bg-midnight-900 border border-white/10 hover:border-purple-500/30 transition-all flex flex-col justify-between"
+                  >
                     <div>
-                      <h3 className="text-base font-bold text-white">{t.title}</h3>
-                      <span className="text-xs text-slate-400">Mentor: {t.mentor}</span>
+                      <div className="flex items-center justify-between text-xs mb-3">
+                        <span className="text-slate-400">{track.mentor}</span>
+                        <span className="font-semibold text-cyan-400">
+                          {track.progress}%
+                        </span>
+                      </div>
+
+                      <h3 className="font-bold text-white text-base leading-snug">
+                        {track.title}
+                      </h3>
+
+                      {/* Progress Bar */}
+                      <div className="w-full h-2 rounded-full bg-white/10 mt-4 overflow-hidden">
+                        <div
+                          className={`h-full bg-gradient-to-r ${track.gradient} rounded-full`}
+                          style={{ width: `${track.progress}%` }}
+                        />
+                      </div>
+
+                      <div className="mt-4 p-3 rounded-xl bg-white/[0.02] border border-white/5">
+                        <p className="text-[11px] text-slate-400">Up Next:</p>
+                        <p className="text-xs font-medium text-slate-200 mt-0.5 truncate">
+                          {track.nextLesson}
+                        </p>
+                      </div>
                     </div>
 
-                    <span className="text-xs px-2.5 py-1 rounded-full bg-purple-500/10 border border-purple-500/30 text-purple-300 font-medium self-start sm:self-auto">
-                      {t.liveStatus}
-                    </span>
-                  </div>
+                    <div className="mt-6 pt-4 border-t border-white/5 flex items-center justify-between">
+                      <span className="text-[11px] text-slate-400">
+                        {track.completedModules}/{track.totalModules} Units
+                      </span>
 
-                  {/* Progress bar */}
-                  <div className="my-2">
-                    <div className="flex items-center justify-between text-xs text-slate-300 mb-1">
-                      <span>Curriculum Completion</span>
-                      <span className="font-mono font-bold text-cyan-300">{t.progress}%</span>
-                    </div>
-                    <div className="h-2 rounded-full bg-white/10 overflow-hidden">
-                      <div
-                        className="h-full bg-gradient-to-r from-purple-500 to-cyan-400 transition-all duration-500"
-                        style={{ width: `${t.progress}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="mt-3 pt-3 border-t border-white/5 flex items-center justify-between">
-                    <span className="text-xs text-slate-400">Next: <strong className="text-slate-200">{t.nextLesson}</strong></span>
-                    <Link href={`/meet/${t.roomId}`}>
-                      <Button size="sm" variant="secondary" className="text-xs py-1.5 px-3 flex items-center gap-1.5">
-                        <span>Enter Room</span>
+                      <Link
+                        href={`/meet/${track.roomId}`}
+                        className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white/10 hover:bg-cyan-500/20 text-white hover:text-cyan-300 transition-colors flex items-center gap-1"
+                      >
+                        <span>Open Class</span>
                         <ArrowRight className="w-3.5 h-3.5" />
-                      </Button>
-                    </Link>
+                      </Link>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
 
-          {/* Right Col: Live Class Schedule & Doubts Feed */}
-          <div className="space-y-6">
-            {/* Live Class Schedule */}
-            <div className="p-5 rounded-2xl bg-midnight-900/50 border border-white/10">
-              <h3 className="text-sm font-bold text-white flex items-center gap-2 mb-4">
-                <Calendar className="w-4 h-4 text-cyan-400" />
-                <span>Upcoming Cohort Schedule</span>
-              </h3>
+            {/* Upcoming Schedule Row */}
+            <div className="p-6 rounded-3xl bg-midnight-900/60 border border-white/10">
+              <h2 className="text-base font-bold text-white mb-4 flex items-center gap-2">
+                <Clock className="w-4 h-4 text-purple-400" />
+                <span>Today's Live Class Lineup</span>
+              </h2>
 
-              <div className="space-y-3">
+              <div className="divide-y divide-white/5">
                 {upcomingClasses.map((c) => (
                   <div
                     key={c.id}
-                    className={`p-3 rounded-xl border text-xs ${
-                      c.isLive
-                        ? "bg-cyan-500/10 border-cyan-500/40"
-                        : "bg-white/[0.02] border-white/5"
-                    }`}
+                    className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
                   >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="font-bold text-white">{c.title}</span>
-                      {c.isLive && (
-                        <span className="px-1.5 py-0.2 rounded-full bg-red-500/20 text-red-400 font-bold text-[9px] animate-pulse">
-                          LIVE
-                        </span>
-                      )}
+                    <div>
+                      <div className="flex items-center gap-2">
+                        {c.isLive && (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 animate-pulse">
+                            LIVE NOW
+                          </span>
+                        )}
+                        <h4 className="text-sm font-semibold text-white">
+                          {c.title}
+                        </h4>
+                      </div>
+                      <p className="text-xs text-slate-400 mt-1">
+                        Instructor: {c.instructor} • {c.date}, {c.time}
+                      </p>
                     </div>
-                    <span className="text-slate-400 block">{c.time} • {c.instructor}</span>
-                    <Link href={`/meet/${c.roomId}`} className="mt-2 text-cyan-400 hover:underline block font-semibold">
-                      Join Classroom →
+
+                    <Link
+                      href={`/meet/${c.roomId}`}
+                      className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all shrink-0 flex items-center gap-1.5 ${
+                        c.isLive
+                          ? "bg-emerald-500 hover:bg-emerald-400 text-midnight-950 font-bold shadow-glow-cyan"
+                          : "bg-white/5 hover:bg-white/10 text-slate-200 border border-white/10"
+                      }`}
+                    >
+                      <Video className="w-3.5 h-3.5" />
+                      <span>{c.isLive ? "Join Classroom" : "View Room"}</span>
                     </Link>
                   </div>
                 ))}
               </div>
             </div>
-
-            {/* Quick Doubt Log */}
-            <div className="p-5 rounded-2xl bg-midnight-900/50 border border-white/10">
-              <h3 className="text-sm font-bold text-white flex items-center gap-2 mb-4">
-                <HelpCircle className="w-4 h-4 text-pink-400" />
-                <span>Recent Doubts & Answers</span>
-              </h3>
-
-              <div className="space-y-3">
-                {doubtHistory.slice(0, 2).map((d) => (
-                  <div key={d.id} className="p-3 rounded-xl bg-white/[0.02] border border-white/5 text-xs space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] text-slate-400 font-mono">{d.askedIn}</span>
-                      <span className={`text-[10px] font-bold ${d.status === "resolved" ? "text-emerald-400" : "text-amber-400"}`}>
-                        {d.status.toUpperCase()}
-                      </span>
-                    </div>
-                    <p className="font-medium text-slate-200">{d.topic}</p>
-                    {d.answer && (
-                      <p className="text-[11px] text-cyan-300 bg-cyan-500/10 p-2 rounded-lg border border-cyan-500/20">
-                        Ans: {d.answer}
-                      </p>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
           </div>
-        </div>
+        )}
 
-        {/* Downloadable Materials & Lecture Notes */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Lecture Notes */}
-          <div className="p-5 rounded-2xl bg-midnight-900/50 border border-white/10">
-            <h3 className="text-sm font-bold text-white flex items-center gap-2 mb-3">
-              <FileText className="w-4 h-4 text-purple-400" />
-              <span>Saved Classroom Notes</span>
+        {/* Tab 2: Schedule */}
+        {activeTab === "schedule" && (
+          <div className="p-6 rounded-3xl bg-midnight-900 border border-white/10 space-y-4">
+            <h3 className="text-base font-bold text-white">
+              Weekly Cohort Timetable
             </h3>
-            <div className="space-y-2.5">
-              {savedNotes.map((n) => (
-                <div key={n.id} className="p-3 rounded-xl bg-white/[0.02] border border-white/5 text-xs">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="font-semibold text-white">{n.title}</span>
-                    <span className="text-[10px] text-slate-500">{n.updatedAt}</span>
-                  </div>
-                  <p className="text-[11px] text-slate-400 font-mono truncate">{n.snippet}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Course Materials */}
-          <div className="p-5 rounded-2xl bg-midnight-900/50 border border-white/10">
-            <h3 className="text-sm font-bold text-white flex items-center gap-2 mb-3">
-              <FolderOpen className="w-4 h-4 text-pink-400" />
-              <span>Cohort Learning Resources</span>
-            </h3>
-            <div className="space-y-2.5">
-              {materials.map((m) => (
-                <div key={m.id} className="p-3 rounded-xl bg-white/[0.02] border border-white/5 text-xs flex items-center justify-between">
+            <p className="text-xs text-slate-400">
+              Classes are conducted via high-fidelity LiveKit WebRTC video channels with synchronized collaborative whiteboards.
+            </p>
+            <div className="space-y-3 pt-2">
+              {upcomingClasses.map((item) => (
+                <div
+                  key={item.id}
+                  className="p-4 rounded-xl bg-white/[0.02] border border-white/5 flex items-center justify-between"
+                >
                   <div>
-                    <span className="font-semibold text-white block">{m.title}</span>
-                    <span className="text-[10px] text-slate-400">{m.type} • {m.size}</span>
+                    <p className="text-sm font-semibold text-white">
+                      {item.title}
+                    </p>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      {item.instructor} • {item.date} at {item.time}
+                    </p>
                   </div>
-                  <button className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300">
-                    <Download className="w-4 h-4 text-cyan-400" />
-                  </button>
+                  <Link
+                    href={`/meet/${item.roomId}`}
+                    className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-cyan-500/20 text-cyan-300 hover:bg-cyan-500/30 transition-colors"
+                  >
+                    Enter Room
+                  </Link>
                 </div>
               ))}
             </div>
           </div>
-        </div>
-      </main>
-    </div>
+        )}
+
+        {/* Tab 3: Notes */}
+        {activeTab === "notes" && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {classNotes.map((note) => (
+              <div
+                key={note.id}
+                className="p-5 rounded-2xl bg-midnight-900 border border-white/10 flex flex-col justify-between"
+              >
+                <div>
+                  <div className="flex items-center justify-between text-xs mb-2">
+                    <span className="text-purple-400 font-medium">{note.course}</span>
+                    <span className="text-slate-500">{note.updated}</span>
+                  </div>
+                  <h4 className="text-base font-bold text-white">{note.title}</h4>
+                  <p className="text-xs text-slate-300 mt-2 font-mono whitespace-pre-line bg-black/30 p-3 rounded-lg border border-white/5">
+                    {note.snippet}
+                  </p>
+                </div>
+                <div className="mt-4 pt-3 border-t border-white/5 flex justify-end">
+                  <Link
+                    href="/meet/ai-eng-live"
+                    className="text-xs text-cyan-400 hover:underline flex items-center gap-1"
+                  >
+                    <span>Open in Classroom Canvas</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Tab 4: Doubts */}
+        {activeTab === "doubts" && (
+          <div className="space-y-4">
+            {doubtHistory.map((d) => (
+              <div
+                key={d.id}
+                className="p-5 rounded-2xl bg-midnight-900 border border-white/10 space-y-3"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-purple-400 font-medium">{d.track}</span>
+                  <span
+                    className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${
+                      d.status === "resolved"
+                        ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                        : "bg-amber-500/20 text-amber-400 border border-amber-500/30"
+                    }`}
+                  >
+                    {d.status.toUpperCase()}
+                  </span>
+                </div>
+                <h4 className="text-sm font-semibold text-white">{d.question}</h4>
+                {d.answer && (
+                  <div className="p-3 rounded-xl bg-cyan-950/20 border border-cyan-500/20 text-xs text-slate-200">
+                    <p className="font-semibold text-cyan-300 mb-1">
+                      Answer by {d.mentor}:
+                    </p>
+                    <p>{d.answer}</p>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </AppShell>
   );
 }
