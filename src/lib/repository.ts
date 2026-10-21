@@ -610,16 +610,22 @@ export class ClassroomRepository {
   /** Clear Whiteboard Page */
   static async clearWhiteboard(roomId: string, pageId: string): Promise<void> {
     try {
-      await prisma.whiteboardStroke.deleteMany({
-        where: { pageId },
+      const meeting = await prisma.meeting.findUnique({ where: { roomId } });
+      const page = await prisma.whiteboardPage.findFirst({
+        where: meeting ? { meetingId: meeting.id } : { id: pageId },
       });
+      if (page) {
+        await prisma.whiteboardStroke.deleteMany({
+          where: { pageId: page.id },
+        });
+      }
     } catch (err) {
       console.error("[ClassroomRepository.clearWhiteboard] DB error:", err);
     }
 
     const pages = store.whiteboards[roomId];
     if (pages) {
-      const page = pages.find((p) => p.id === pageId);
+      const page = pages.find((p) => p.id === pageId) || pages[0];
       if (page) page.strokes = [];
     }
   }

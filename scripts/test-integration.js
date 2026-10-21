@@ -200,6 +200,39 @@ async function runTestSuite() {
     if (!data.meeting?.settings?.isLocked) throw new Error("Meeting was not locked");
   });
 
+  // Test 9: Whiteboard Clear Authorization & Stroke Purge
+  await assert("Blocks unauthorized student from clearing whiteboard with 403 Forbidden", async () => {
+    const res = await fetch(`${BASE_URL}/api/meet/${createdRoomId}/classroom`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "clear-whiteboard",
+        pageId: "board-1",
+        userRole: "student",
+      }),
+    });
+    if (res.status !== 403) throw new Error(`Expected status 403, got ${res.status}`);
+  });
+
+  await assert("Allows verified instructor to clear whiteboard and purges strokes", async () => {
+    const res = await fetch(`${BASE_URL}/api/meet/${createdRoomId}/classroom`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "clear-whiteboard",
+        pageId: "board-1",
+        userRole: "teacher",
+        hostKey: createdHostId,
+      }),
+    });
+    if (res.status !== 200) throw new Error(`Expected status 200, got ${res.status}`);
+
+    const verifyRes = await fetch(`${BASE_URL}/api/meet/${createdRoomId}/classroom?type=whiteboard`);
+    const data = await verifyRes.json();
+    const strokes = data.pages?.[0]?.strokes || [];
+    if (strokes.length !== 0) throw new Error(`Expected 0 strokes after clear, found ${strokes.length}`);
+  });
+
   console.log("==================================================");
   console.log(`   Suite Results: ${passed} Passed, ${failed} Failed`);
   console.log("==================================================");
