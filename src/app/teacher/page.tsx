@@ -25,6 +25,7 @@ export default function TeacherWorkspacePage() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<"classes" | "doubts" | "materials">("classes");
   const [cohortData, setCohortData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchCohort() {
@@ -36,7 +37,9 @@ export default function TeacherWorkspacePage() {
           const data = await res.json();
           setCohortData(data);
         }
-      } catch {}
+      } catch {} finally {
+        setLoading(false);
+      }
     }
     fetchCohort();
   }, [user.role]);
@@ -212,32 +215,45 @@ export default function TeacherWorkspacePage() {
         {/* Tab 2: Doubts Queue */}
         {activeTab === "doubts" && (
           <div className="space-y-3">
-            {pendingDoubts.map((d) => (
-              <div
-                key={d.id}
-                className="p-5 rounded-2xl bg-midnight-900 border border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
-              >
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-purple-400 font-semibold">{d.student}</span>
-                    <span className="text-xs text-slate-500">• {d.time}</span>
-                    {d.priority === "urgent" && (
-                      <span className="text-[10px] px-2 py-0.5 rounded bg-rose-500/20 text-rose-400 border border-rose-500/30">
-                        URGENT
-                      </span>
-                    )}
-                  </div>
-                  <h4 className="text-sm font-semibold text-white mt-1">{d.question}</h4>
-                </div>
-
-                <Link
-                  href="/meet/ai-eng-live"
-                  className="px-4 py-2 rounded-xl text-xs font-semibold bg-white/10 hover:bg-cyan-500/20 text-white hover:text-cyan-300 border border-white/10 transition-colors shrink-0"
+            {cohortData?.doubts && cohortData.doubts.length > 0 ? (
+              cohortData.doubts.map((d: any) => (
+                <div
+                  key={d.id}
+                  className="p-5 rounded-2xl bg-midnight-900 border border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
                 >
-                  Answer in Classroom
-                </Link>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-purple-400 font-semibold">{d.studentName}</span>
+                      <span className="text-xs text-slate-500">• {new Date(d.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                      {d.priority === "urgent" && (
+                        <span className="text-[10px] px-2 py-0.5 rounded bg-rose-500/20 text-rose-400 border border-rose-500/30">
+                          URGENT
+                        </span>
+                      )}
+                      <span className={`text-[10px] px-2 py-0.5 rounded uppercase font-semibold ${
+                        d.status === "resolved" ? "bg-emerald-500/20 text-emerald-400" : "bg-amber-500/20 text-amber-400"
+                      }`}>
+                        {d.status}
+                      </span>
+                    </div>
+                    <h4 className="text-sm font-semibold text-white mt-1">{d.question}</h4>
+                  </div>
+
+                  <Link
+                    href={`/meet/${cohortData.activeCohort || "ai-eng-live"}`}
+                    className="px-4 py-2 rounded-xl text-xs font-semibold bg-white/10 hover:bg-cyan-500/20 text-white hover:text-cyan-300 border border-white/10 transition-colors shrink-0"
+                  >
+                    Answer in Classroom
+                  </Link>
+                </div>
+              ))
+            ) : (
+              <div className="p-8 rounded-3xl bg-midnight-900 border border-white/10 text-center space-y-2">
+                <CheckCircle2 className="w-8 h-8 text-emerald-400 mx-auto" />
+                <h4 className="text-sm font-bold text-white">No Pending Doubts</h4>
+                <p className="text-xs text-slate-400">All questions from the active cohort have been addressed.</p>
               </div>
-            ))}
+            )}
           </div>
         )}
 

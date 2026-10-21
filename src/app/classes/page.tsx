@@ -17,6 +17,19 @@ import AppShell from "@/components/layout/AppShell";
 
 export default function LiveClassesPage() {
   const [filter, setFilter] = useState<"all" | "live" | "upcoming">("all");
+  const [activeRooms, setActiveRooms] = useState<Record<string, boolean>>({ "ai-eng-live": true });
+
+  React.useEffect(() => {
+    async function checkRooms() {
+      try {
+        const res = await fetch("/api/meet/ai-eng-live/classroom");
+        if (res.ok) {
+          setActiveRooms((prev) => ({ ...prev, "ai-eng-live": true }));
+        }
+      } catch {}
+    }
+    checkRooms();
+  }, []);
 
   const classes = [
     {
@@ -24,8 +37,8 @@ export default function LiveClassesPage() {
       title: "Generative AI: RAG Pipeline Optimization & Vector Search",
       instructor: "Dr. Aryan Mehta",
       role: "Lead AI Scientist",
-      status: "live",
-      time: "Live Now (Started 25m ago)",
+      status: activeRooms["ai-eng-live"] ? "live" : "upcoming",
+      time: activeRooms["ai-eng-live"] ? "Live Interactive Studio" : "Scheduled Session",
       attendees: 32,
       roomId: "ai-eng-live",
       track: "AI & ML",
@@ -37,7 +50,7 @@ export default function LiveClassesPage() {
       instructor: "Priya Sharma",
       role: "Staff Infrastructure Engineer",
       status: "upcoming",
-      time: "Today at 6:30 PM (in 1h 30m)",
+      time: "Scheduled Cohort",
       attendees: 48,
       roomId: "sys-design-401",
       track: "Systems Engineering",

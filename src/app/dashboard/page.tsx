@@ -29,6 +29,25 @@ export default function StudentDashboardPage() {
   const [activeTab, setActiveTab] = useState<
     "overview" | "schedule" | "notes" | "doubts" | "materials"
   >("overview");
+  const [dashboardData, setDashboardData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  React.useEffect(() => {
+    async function loadData() {
+      try {
+        const res = await fetch("/api/student/dashboard");
+        if (res.ok) {
+          const data = await res.json();
+          setDashboardData(data);
+        }
+      } catch (e) {
+        console.error("Dashboard fetch error:", e);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadData();
+  }, []);
 
   // Enrolled Courses & Progress
   const enrolledTracks = [
@@ -187,16 +206,22 @@ export default function StudentDashboardPage() {
               <p className="text-xl font-bold text-white mt-1">3 Tracks</p>
             </div>
             <div>
-              <p className="text-xs text-slate-400">Live Attendance</p>
-              <p className="text-xl font-bold text-emerald-400 mt-1">94.8%</p>
+              <p className="text-xs text-slate-400">Total Live Sessions</p>
+              <p className="text-xl font-bold text-emerald-400 mt-1">
+                {dashboardData?.metrics?.totalEnrolled ?? 6} Sessions
+              </p>
             </div>
             <div>
-              <p className="text-xs text-slate-400">Coding Labs Solved</p>
-              <p className="text-xl font-bold text-cyan-400 mt-1">48 / 60</p>
+              <p className="text-xs text-slate-400">Doubt Inquiries</p>
+              <p className="text-xl font-bold text-cyan-400 mt-1">
+                {dashboardData?.metrics?.resolvedDoubts ? `${dashboardData.metrics.resolvedDoubts} Resolved` : "6 Resolved"}
+              </p>
             </div>
             <div>
-              <p className="text-xs text-slate-400">Mock Interview Score</p>
-              <p className="text-xl font-bold text-purple-400 mt-1">8.9 / 10</p>
+              <p className="text-xs text-slate-400">Attendance Logged</p>
+              <p className="text-xl font-bold text-purple-400 mt-1">
+                {dashboardData?.metrics?.totalAttendance ? `${dashboardData.metrics.totalAttendance} Records` : "6 Records"}
+              </p>
             </div>
           </div>
         </div>
@@ -302,7 +327,7 @@ export default function StudentDashboardPage() {
             <div className="p-6 rounded-3xl bg-midnight-900/60 border border-white/10">
               <h2 className="text-base font-bold text-white mb-4 flex items-center gap-2">
                 <Clock className="w-4 h-4 text-purple-400" />
-                <span>Today's Live Class Lineup</span>
+                <span>Today&apos;s Live Class Lineup</span>
               </h2>
 
               <div className="divide-y divide-white/5">
@@ -415,34 +440,48 @@ export default function StudentDashboardPage() {
         {/* Tab 4: Doubts */}
         {activeTab === "doubts" && (
           <div className="space-y-4">
-            {doubtHistory.map((d) => (
-              <div
-                key={d.id}
-                className="p-5 rounded-2xl bg-midnight-900 border border-white/10 space-y-3"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-purple-400 font-medium">{d.track}</span>
-                  <span
-                    className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${
-                      d.status === "resolved"
-                        ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
-                        : "bg-amber-500/20 text-amber-400 border border-amber-500/30"
-                    }`}
-                  >
-                    {d.status.toUpperCase()}
-                  </span>
-                </div>
-                <h4 className="text-sm font-semibold text-white">{d.question}</h4>
-                {d.answer && (
-                  <div className="p-3 rounded-xl bg-cyan-950/20 border border-cyan-500/20 text-xs text-slate-200">
-                    <p className="font-semibold text-cyan-300 mb-1">
-                      Answer by {d.mentor}:
-                    </p>
-                    <p>{d.answer}</p>
+            {dashboardData?.recentDoubts && dashboardData.recentDoubts.length > 0 ? (
+              dashboardData.recentDoubts.map((d: any) => (
+                <div
+                  key={d.id}
+                  className="p-5 rounded-2xl bg-midnight-900 border border-white/10 space-y-3"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-purple-400 font-medium">
+                      Asked by {d.studentName}
+                    </span>
+                    <span
+                      className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${
+                        d.status === "resolved"
+                          ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                          : "bg-amber-500/20 text-amber-400 border border-amber-500/30"
+                      }`}
+                    >
+                      {d.status.toUpperCase()}
+                    </span>
                   </div>
-                )}
+                  <h4 className="text-sm font-semibold text-white">{d.question}</h4>
+                  {d.answers && d.answers.length > 0 ? (
+                    d.answers.map((ans: any, idx: number) => (
+                      <div key={idx} className="p-3 rounded-xl bg-cyan-950/20 border border-cyan-500/20 text-xs text-slate-200">
+                        <p className="font-semibold text-cyan-300 mb-1">
+                          Answer by {ans.authorName} ({ans.authorRole}):
+                        </p>
+                        <p>{ans.text}</p>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-xs text-slate-500 italic">Pending instructor response.</p>
+                  )}
+                </div>
+              ))
+            ) : (
+              <div className="p-8 rounded-3xl bg-midnight-900 border border-white/10 text-center space-y-2">
+                <CheckCircle2 className="w-8 h-8 text-cyan-400 mx-auto" />
+                <h4 className="text-sm font-bold text-white">No Inquiries Found</h4>
+                <p className="text-xs text-slate-400">Ask questions during live classroom sessions to track answers here.</p>
               </div>
-            ))}
+            )}
           </div>
         )}
       </div>

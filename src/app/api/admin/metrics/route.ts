@@ -35,14 +35,21 @@ export async function GET(req: NextRequest) {
       console.warn("[/api/admin/metrics] Database check:", dbErr);
     }
 
+    const livekitConfigured = Boolean(
+      process.env.LIVEKIT_API_KEY &&
+      process.env.LIVEKIT_API_SECRET &&
+      process.env.NEXT_PUBLIC_LIVEKIT_URL
+    );
+
     return NextResponse.json({
       status: "operational",
       dbHealth: isDbHealthy ? "connected" : "offline",
+      livekitHealth: livekitConfigured ? "configured" : "missing_credentials",
       metrics: {
-        totalUsers: userCount || 1248,
-        activeRooms: meetingCount || 3,
-        serverUptime: process.uptime(),
-        environment: process.env.NODE_ENV,
+        totalUsers: userCount,
+        activeRooms: meetingCount,
+        serverUptime: Math.floor(process.uptime()),
+        environment: process.env.NODE_ENV || "development",
       },
       auditLogs: [
         { id: 1, event: "ADMIN_METRICS_ACCESSED", timestamp: new Date().toISOString(), status: "SUCCESS" },

@@ -24,8 +24,9 @@ export default function AdminDashboardPage() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<"overview" | "users" | "courses" | "audit">("overview");
   const [dbStatus, setDbStatus] = useState<string>("Checking...");
-  const [userCount, setUserCount] = useState<number>(1248);
-  const [roomCount, setRoomCount] = useState<number>(3);
+  const [livekitStatus, setLivekitStatus] = useState<string>("Checking...");
+  const [userCount, setUserCount] = useState<number>(0);
+  const [roomCount, setRoomCount] = useState<number>(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -36,9 +37,10 @@ export default function AdminDashboardPage() {
         });
         if (res.ok) {
           const data = await res.json();
-          setDbStatus(data.dbHealth === "connected" ? "Connected (Live PostgreSQL)" : "In-Memory / Fallback");
-          if (data.metrics?.totalUsers) setUserCount(data.metrics.totalUsers);
-          if (data.metrics?.activeRooms) setRoomCount(data.metrics.activeRooms);
+          setDbStatus(data.dbHealth === "connected" ? "Connected (Live PostgreSQL)" : "Offline / Unreachable");
+          setLivekitStatus(data.livekitHealth === "configured" ? "Configured & Active" : "Missing Credentials");
+          setUserCount(data.metrics?.totalUsers ?? 0);
+          setRoomCount(data.metrics?.activeRooms ?? 0);
         } else {
           setDbStatus("Access Restricted");
         }
@@ -78,10 +80,10 @@ export default function AdminDashboardPage() {
   }
 
   const systemMetrics = [
-    { label: "Total Registered Users", value: userCount.toString(), change: "+14% this month" },
-    { label: "Active Live Rooms", value: roomCount.toString(), change: "LiveKit WebRTC healthy" },
-    { label: "PostgreSQL Records", value: "11 Relational Tables", change: dbStatus },
-    { label: "Server Architecture", value: "Next.js 14.2", change: "Prisma 5.22.0 Client" },
+    { label: "Total Registered Users", value: loading ? "..." : userCount.toString(), change: "Persisted in PostgreSQL" },
+    { label: "Active Live Rooms", value: loading ? "..." : roomCount.toString(), change: livekitStatus },
+    { label: "PostgreSQL Health", value: dbStatus.includes("Connected") ? "Operational" : "Offline", change: dbStatus },
+    { label: "Signaling / WebRTC", value: "LiveKit SDK", change: livekitStatus },
   ];
 
   const recentUsers = [
