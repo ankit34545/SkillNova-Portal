@@ -141,7 +141,11 @@ export default function MeetingRoomClient({ roomId }: { roomId: string }) {
   useEffect(() => {
     if (joined) {
       fetchClassroomData();
-      const interval = setInterval(fetchClassroomData, 4000);
+      const interval = setInterval(() => {
+        // Performance optimization: skip network poll when tab is in background
+        if (typeof document !== "undefined" && document.hidden) return;
+        fetchClassroomData();
+      }, 4000);
       return () => clearInterval(interval);
     }
   }, [joined, roomId]);
