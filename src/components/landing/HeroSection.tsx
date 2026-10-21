@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Sparkles, Terminal, Play, ShieldCheck, Star, Users, Brain, Cpu, Compass } from "lucide-react";
-import HeroScene from "../3d/HeroScene";
+import HeroWorkspacePreview from "./HeroWorkspacePreview";
 
 export default function HeroSection() {
   const [selectedSkill, setSelectedSkill] = useState("AI Engineering");
@@ -114,12 +114,12 @@ export default function HeroSection() {
             </div>
           </div>
 
-          {/* Right Column: 3D Interactive Hero Canvas */}
+          {/* Right Column: AI Learning Workspace Preview */}
           <div className="lg:col-span-5 relative flex items-center justify-center">
-            {/* Ambient Backlight for 3D Core */}
-            <div className="absolute inset-0 bg-gradient-radial from-purple-600/20 via-cyan-500/10 to-transparent blur-3xl pointer-events-none" />
-            <div className="relative w-full h-[450px] sm:h-[520px] lg:h-[580px] rounded-3xl border border-white/10 bg-midnight-900/40 backdrop-blur-md overflow-hidden shadow-glass">
-              <HeroScene
+            {/* Ambient Backlight */}
+            <div className="absolute inset-0 bg-gradient-radial from-purple-600/15 via-cyan-500/10 to-transparent blur-3xl pointer-events-none" />
+            <div className="relative w-full h-[450px] sm:h-[500px] lg:h-[520px] rounded-3xl border border-white/10 bg-midnight-900/60 backdrop-blur-xl overflow-hidden shadow-2xl">
+              <HeroWorkspacePreview
                 selectedSkill={selectedSkill}
                 onSkillSelect={(skill) => setSelectedSkill(skill)}
               />
