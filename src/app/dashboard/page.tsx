@@ -408,32 +408,40 @@ export default function StudentDashboardPage() {
         {/* Tab 3: Notes */}
         {activeTab === "notes" && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {classNotes.map((note) => (
-              <div
-                key={note.id}
-                className="p-5 rounded-2xl bg-midnight-900 border border-white/10 flex flex-col justify-between"
-              >
-                <div>
-                  <div className="flex items-center justify-between text-xs mb-2">
-                    <span className="text-purple-400 font-medium">{note.course}</span>
-                    <span className="text-slate-500">{note.updated}</span>
+            {classNotes.length > 0 ? (
+              classNotes.map((note) => (
+                <div
+                  key={note.id}
+                  className="p-5 rounded-2xl bg-midnight-900 border border-white/10 flex flex-col justify-between"
+                >
+                  <div>
+                    <div className="flex items-center justify-between text-xs mb-2">
+                      <span className="text-purple-400 font-medium">{note.course}</span>
+                      <span className="text-slate-500">{note.updated}</span>
+                    </div>
+                    <h4 className="text-base font-bold text-white">{note.title}</h4>
+                    <p className="text-xs text-slate-300 mt-2 font-mono whitespace-pre-line bg-black/30 p-3 rounded-lg border border-white/5">
+                      {note.snippet}
+                    </p>
                   </div>
-                  <h4 className="text-base font-bold text-white">{note.title}</h4>
-                  <p className="text-xs text-slate-300 mt-2 font-mono whitespace-pre-line bg-black/30 p-3 rounded-lg border border-white/5">
-                    {note.snippet}
-                  </p>
+                  <div className="mt-4 pt-3 border-t border-white/5 flex justify-end">
+                    <Link
+                      href="/meet/ai-eng-live"
+                      className="text-xs text-cyan-400 hover:underline flex items-center gap-1"
+                    >
+                      <span>Open in Classroom Canvas</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </Link>
+                  </div>
                 </div>
-                <div className="mt-4 pt-3 border-t border-white/5 flex justify-end">
-                  <Link
-                    href="/meet/ai-eng-live"
-                    className="text-xs text-cyan-400 hover:underline flex items-center gap-1"
-                  >
-                    <span>Open in Classroom Canvas</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </Link>
-                </div>
+              ))
+            ) : (
+              <div className="col-span-full p-8 rounded-3xl bg-midnight-900 border border-white/10 text-center space-y-2">
+                <FileText className="w-8 h-8 text-purple-400 mx-auto" />
+                <h4 className="text-sm font-bold text-white">No Notes Saved Yet</h4>
+                <p className="text-xs text-slate-400">Save notes during live lectures to review concepts and checklists here.</p>
               </div>
-            ))}
+            )}
           </div>
         )}
 

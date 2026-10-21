@@ -412,7 +412,26 @@ export class ClassroomRepository {
     note: Omit<SharedNote, "id" | "updatedAt"> & { id?: string }
   ): Promise<SharedNote> {
     try {
-      const meeting = await prisma.meeting.findUnique({ where: { roomId } });
+      let meeting = await prisma.meeting.findUnique({ where: { roomId } });
+      if (!meeting) {
+        // Find any existing active meeting or create master cohort meeting
+        meeting = await prisma.meeting.findFirst({ where: { status: "ACTIVE" } });
+        if (!meeting) {
+          const hostId = "host-system-master";
+          await this.ensureUser(hostId, "Dr. Aryan Mehta", "HOST");
+          meeting = await prisma.meeting.create({
+            data: {
+              roomId,
+              code: "AIENG1",
+              title: "Generative AI Systems Masterclass",
+              hostId,
+              hostName: "Dr. Aryan Mehta",
+              status: "ACTIVE",
+            },
+          });
+        }
+      }
+
       if (meeting) {
         await this.ensureUser(note.authorId, note.authorName, "STUDENT");
 

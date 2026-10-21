@@ -150,6 +150,25 @@ export default function CoursesPage() {
                 </div>
 
                 <div className="flex items-center gap-2">
+                  <button
+                    onClick={async () => {
+                      try {
+                        const res = await fetch("/api/student/enroll", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ trackId: track.id }),
+                        });
+                        if (res.ok) {
+                          alert(`Successfully enrolled in ${track.title}! You can now access all modules from your student dashboard.`);
+                        }
+                      } catch {
+                        alert("Enrollment failed. Please check network connection.");
+                      }
+                    }}
+                    className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-white/10 hover:bg-white/20 text-white border border-white/10 transition-colors"
+                  >
+                    Enroll Track
+                  </button>
                   <Link
                     href={`/meet/${
                       track.id === "ai-eng"
