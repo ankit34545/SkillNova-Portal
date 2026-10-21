@@ -1,0 +1,281 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  STUDENT
+  TEACHER
+  HOST
+  ADMIN
+}
+
+enum MeetingStatus {
+  WAITING
+  ACTIVE
+  ENDED
+}
+
+enum Priority {
+  NORMAL
+  URGENT
+}
+
+enum DoubtStatus {
+  OPEN
+  RESOLVED
+  PINNED
+}
+
+model User {
+  id            String         @id @default(uuid())
+  email         String         @unique
+  name          String
+  passwordHash  String
+  role          Role           @default(STUDENT)
+  avatarUrl     String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  hostedMeetings Meeting[]     @relation("MeetingHost")
+  memberships   Membership[]
+  attendances   Attendance[]
+  doubts        Doubt[]
+  doubtAnswers  DoubtAnswer[]
+  notes         Note[]
+  materials     Material[]
+  pollVotes     PollVote[]
+  sessions      Session[]
+
+  @@index([email])
+}
+
+model Session {
+  id           String    @id @default(uuid())
+  userId       String
+  token        String    @unique
+  expiresAt    DateTime
+  createdAt    DateTime  @default(now())
+
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([userId])
+}
+
+model Meeting {
+  id               String         @id @default(uuid())
+  roomId           String         @unique
+  code             String         @unique
+  title            String
+  description      String?
+  hostId           String
+  hostName         String
+  status           MeetingStatus  @default(ACTIVE)
+  visibility       String         @default("public")
+  isLocked         Boolean        @default(false)
+  maxParticipants  Int            @default(100)
+  waitingRoom      Boolean        @default(false)
+  recordingEnabled Boolean        @default(false)
+  scheduledAt      DateTime?
+  endsAt           DateTime?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  host             User           @relation("MeetingHost", fields: [hostId], references: [id])
+  memberships      Membership[]
+  attendances      Attendance[]
+  doubts           Doubt[]
+  notes            Note[]
+  whiteboardPages  WhiteboardPage[]
+  polls            Poll[]
+  materials        Material[]
+  chatMessages     ChatMessage[]
+
+  @@index([roomId])
+  @@index([code])
+  @@index([hostId])
+}
+
+model Membership {
+  id          String    @id @default(uuid())
+  meetingId   String
+  userId      String
+  role        Role      @default(STUDENT)
+  joinedAt    DateTime  @default(now())
+
+  meeting     Meeting   @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([meetingId, userId])
+  @@index([meetingId])
+  @@index([userId])
+}
+
+model Attendance {
+  id              String    @id @default(uuid())
+  meetingId       String
+  userId          String
+  userName        String
+  role            Role      @default(STUDENT)
+  joinedAt        DateTime  @default(now())
+  leftAt          DateTime?
+  durationMinutes Int       @default(0)
+
+  meeting         Meeting   @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([meetingId])
+  @@index([userId])
+}
+
+model Doubt {
+  id          String        @id @default(uuid())
+  meetingId   String
+  studentId   String
+  studentName String
+  question    String
+  codeSnippet String?
+  priority    Priority      @default(NORMAL)
+  status      DoubtStatus   @default(OPEN)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  meeting     Meeting       @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  student     User          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  answers     DoubtAnswer[]
+
+  @@index([meetingId])
+  @@index([studentId])
+}
+
+model DoubtAnswer {
+  id         String    @id @default(uuid())
+  doubtId    String
+  authorId   String
+  authorName String
+  authorRole Role      @default(TEACHER)
+  text       String
+  createdAt  DateTime  @default(now())
+
+  doubt      Doubt     @relation(fields: [doubtId], references: [id], onDelete: Cascade)
+  author     User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([doubtId])
+}
+
+model Note {
+  id          String    @id @default(uuid())
+  meetingId   String
+  authorId    String
+  authorName  String
+  title       String
+  content     String
+  isShared    Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  meeting     Meeting   @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  author      User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([meetingId])
+  @@index([authorId])
+}
+
+model WhiteboardPage {
+  id        String             @id @default(uuid())
+  meetingId String
+  title     String             @default("Main Canvas")
+  createdAt DateTime           @default(now())
+
+  meeting   Meeting            @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  strokes   WhiteboardStroke[]
+
+  @@index([meetingId])
+}
+
+model WhiteboardStroke {
+  id          String         @id @default(uuid())
+  pageId      String
+  tool        String
+  color       String
+  strokeWidth Float
+  x           Float?
+  y           Float?
+  width       Float?
+  height      Float?
+  text        String?
+  pointsJson  String?        // serialized points array
+  createdAt   DateTime       @default(now())
+
+  page        WhiteboardPage @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  @@index([pageId])
+}
+
+model Poll {
+  id        String     @id @default(uuid())
+  meetingId String
+  question  String
+  options   String[]   // String array for options
+  isOpen    Boolean    @default(true)
+  createdBy String
+  createdAt DateTime   @default(now())
+
+  meeting   Meeting    @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  votes     PollVote[]
+
+  @@index([meetingId])
+}
+
+model PollVote {
+  id            String   @id @default(uuid())
+  pollId        String
+  userId        String
+  optionIndex   Int
+  createdAt     DateTime @default(now())
+
+  poll          Poll     @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([pollId, userId])
+  @@index([pollId])
+}
+
+model Material {
+  id         String   @id @default(uuid())
+  meetingId  String
+  title      String
+  fileType   String
+  fileUrl    String
+  sizeBytes  Int
+  pageCount  Int?
+  uploadedBy String
+  uploaderId String
+  createdAt  DateTime @default(now())
+
+  meeting    Meeting  @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  uploader   User     @relation(fields: [uploaderId], references: [id], onDelete: Cascade)
+
+  @@index([meetingId])
+}
+
+model ChatMessage {
+  id         String   @id @default(uuid())
+  meetingId  String
+  senderId   String
+  senderName String
+  senderRole String?
+  text       String
+  type       String   @default("text")
+  emoji      String?
+  createdAt  DateTime @default(now())
+
+  meeting    Meeting  @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+
+  @@index([meetingId])
+}
