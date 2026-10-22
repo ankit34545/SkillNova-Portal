@@ -13,26 +13,52 @@ export interface UserProfile {
   enrolledTrack?: string;
 }
 
+export const PRESET_ACCOUNTS: UserProfile[] = [
+  {
+    id: "usr-admin-01",
+    name: "SkillNova Administrator",
+    email: "admin@skillnova.edu",
+    role: "admin",
+    enrolledTrack: "System Infrastructure & Security",
+  },
+  {
+    id: "usr-student-soniya",
+    name: "Soniya Sharma",
+    email: "soniya@skillnova.edu",
+    role: "student",
+    enrolledTrack: "Generative AI & LLM Systems",
+  },
+  {
+    id: "usr-student-mohit",
+    name: "Mohit Kumar",
+    email: "mohit@skillnova.edu",
+    role: "student",
+    enrolledTrack: "Generative AI & LLM Systems",
+  },
+  {
+    id: "tch-201",
+    name: "Dr. Aryan Mehta",
+    email: "aryan.mehta@skillnova.edu",
+    role: "teacher",
+    enrolledTrack: "AI & Distributed Systems Faculty",
+  },
+];
+
 interface AuthContextType {
   user: UserProfile;
   setRole: (role: UserRole) => void;
   setUser: (user: UserProfile) => void;
+  switchAccount: (email: string) => void;
   logout: () => void;
 }
 
-const defaultUser: UserProfile = {
-  id: "std-101",
-  name: "Arjun Verma",
-  email: "arjun.verma@nit.ac.in",
-  role: "student",
-  avatarUrl: "",
-  enrolledTrack: "Generative AI & LLM Systems",
-};
+const defaultUser: UserProfile = PRESET_ACCOUNTS[0]; // Administrator
 
 const AuthContext = createContext<AuthContextType>({
   user: defaultUser,
   setRole: () => {},
   setUser: () => {},
+  switchAccount: () => {},
   logout: () => {},
 });
 
@@ -55,28 +81,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch {}
   };
 
-  const setRole = (role: UserRole) => {
-    let updated: UserProfile;
-    if (role === "teacher") {
-      updated = {
-        id: "tch-201",
-        name: "Dr. Aryan Mehta",
-        email: "aryan.mehta@skillnova.edu",
-        role: "teacher",
-        enrolledTrack: "AI & Distributed Systems Faculty",
-      };
-    } else if (role === "admin") {
-      updated = {
-        id: "adm-001",
-        name: "Campus Admin",
-        email: "admin@skillnova.edu",
-        role: "admin",
-        enrolledTrack: "System Operations",
-      };
-    } else {
-      updated = defaultUser;
+  const switchAccount = (email: string) => {
+    const target = PRESET_ACCOUNTS.find((a) => a.email === email);
+    if (target) {
+      setUser(target);
     }
-    setUser(updated);
+  };
+
+  const setRole = (role: UserRole) => {
+    if (role === "admin") {
+      setUser(PRESET_ACCOUNTS[0]);
+    } else if (role === "teacher") {
+      setUser(PRESET_ACCOUNTS[3]);
+    } else {
+      setUser(PRESET_ACCOUNTS[1]); // Soniya by default for student
+    }
   };
 
   const logout = () => {
@@ -84,7 +103,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, setRole, setUser, logout }}>
+    <AuthContext.Provider value={{ user, setRole, setUser, switchAccount, logout }}>
       {children}
     </AuthContext.Provider>
   );

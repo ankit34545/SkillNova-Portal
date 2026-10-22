@@ -12,7 +12,7 @@ import {
   Shield,
   HelpCircle,
 } from "lucide-react";
-import { useAuth } from "@/lib/auth-context";
+import { useAuth, PRESET_ACCOUNTS } from "@/lib/auth-context";
 
 interface AppHeaderProps {
   onToggleSidebar?: () => void;
@@ -23,8 +23,9 @@ export default function AppHeader({
   onToggleSidebar,
   breadcrumbs,
 }: AppHeaderProps) {
-  const { user } = useAuth();
+  const { user, switchAccount } = useAuth();
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showAccountMenu, setShowAccountMenu] = useState(false);
 
   const notifications = [
     {
@@ -164,14 +165,65 @@ export default function AppHeader({
           )}
         </div>
 
-        {/* User Avatar Badge */}
-        <div className="flex items-center gap-2 pl-2 border-l border-white/10">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-purple-600 to-cyan-400 flex items-center justify-center text-white text-xs font-bold shadow-glow-violet">
-            {user.name[0]}
-          </div>
-          <span className="hidden lg:inline text-xs font-medium text-slate-200">
-            {user.name.split(" ")[0]}
-          </span>
+        {/* User Account Switcher Dropdown */}
+        <div className="relative">
+          <button
+            onClick={() => setShowAccountMenu(!showAccountMenu)}
+            className="flex items-center gap-2 pl-2 border-l border-white/10 hover:opacity-80 transition-opacity"
+            title="Switch User Account"
+          >
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-purple-600 to-cyan-400 flex items-center justify-center text-white text-xs font-bold shadow-glow-violet">
+              {user.name ? user.name[0] : "U"}
+            </div>
+            <div className="hidden lg:flex flex-col text-left">
+              <span className="text-xs font-medium text-slate-200">
+                {user.name.split(" ")[0]}
+              </span>
+              <span className="text-[10px] text-slate-400 uppercase font-mono">
+                {user.role}
+              </span>
+            </div>
+          </button>
+
+          {showAccountMenu && (
+            <div className="absolute right-0 mt-2 w-64 rounded-2xl bg-midnight-900 border border-white/10 shadow-2xl p-3 z-50">
+              <div className="pb-2 mb-2 border-b border-white/10">
+                <span className="text-xs font-semibold text-slate-300">
+                  Switch Active Account
+                </span>
+              </div>
+              <div className="space-y-1">
+                {PRESET_ACCOUNTS.map((acc) => (
+                  <button
+                    key={acc.email}
+                    onClick={() => {
+                      switchAccount(acc.email);
+                      setShowAccountMenu(false);
+                    }}
+                    className={`w-full text-left p-2 rounded-xl transition-all flex items-center justify-between text-xs ${
+                      user.email === acc.email
+                        ? "bg-cyan-500/10 text-cyan-300 border border-cyan-500/30"
+                        : "hover:bg-white/5 text-slate-300"
+                    }`}
+                  >
+                    <div>
+                      <div className="font-medium text-white">{acc.name}</div>
+                      <div className="text-[10px] text-slate-400 font-mono">{acc.email}</div>
+                    </div>
+                    <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded uppercase ${
+                      acc.role === "admin"
+                        ? "bg-amber-500/20 text-amber-300"
+                        : acc.role === "teacher"
+                        ? "bg-purple-500/20 text-purple-300"
+                        : "bg-cyan-500/20 text-cyan-300"
+                    }`}>
+                      {acc.role}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </header>
