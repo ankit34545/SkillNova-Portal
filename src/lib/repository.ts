@@ -611,12 +611,29 @@ export class ClassroomRepository {
   static async clearWhiteboard(roomId: string, pageId: string): Promise<void> {
     try {
       const meeting = await prisma.meeting.findUnique({ where: { roomId } });
-      const page = await prisma.whiteboardPage.findFirst({
-        where: meeting ? { meetingId: meeting.id } : { id: pageId },
-      });
-      if (page) {
+      if (meeting) {
+        // If specific page matches id or if default pageId 'board-1' matches first page of room
+        const page = await prisma.whiteboardPage.findFirst({
+          where: {
+            meetingId: meeting.id,
+            ...(pageId && pageId !== "board-1" ? { id: pageId } : {}),
+          },
+        });
+        if (page) {
+          await prisma.whiteboardStroke.deleteMany({
+            where: { pageId: page.id },
+          });
+        } else {
+          // Alternatively delete all strokes associated with any whiteboard page belonging to this meeting
+          await prisma.whiteboardStroke.deleteMany({
+            where: {
+              page: { meetingId: meeting.id },
+            },
+          });
+        }
+      } else {
         await prisma.whiteboardStroke.deleteMany({
-          where: { pageId: page.id },
+          where: { pageId },
         });
       }
     } catch (err) {
