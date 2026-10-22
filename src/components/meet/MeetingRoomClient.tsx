@@ -17,6 +17,10 @@ import {
   Layers,
   FileCode,
   Users,
+  Wifi,
+  WifiOff,
+  AlertCircle,
+  Clock,
 } from "lucide-react";
 import type {
   Meeting,
@@ -62,6 +66,10 @@ export default function MeetingRoomClient({ roomId }: { roomId: string }) {
   const [activePanel, setActivePanel] = useState<
     "chat" | "participants" | "doubts" | "notes" | "materials" | "whiteboard" | null
   >(null);
+
+  // Connection and media device states
+  const [connectionState, setConnectionState] = useState<"connected" | "reconnecting" | "disconnected">("connected");
+  const [mediaWarning, setMediaWarning] = useState<string | null>(null);
 
   // Classroom Real-time State
   const [participants, setParticipants] = useState<Participant[]>([]);
@@ -125,6 +133,7 @@ export default function MeetingRoomClient({ roomId }: { roomId: string }) {
     try {
       const res = await fetch(`/api/meet/${roomId}/classroom`);
       if (res.ok) {
+        setConnectionState("connected");
         const data = await res.json();
         if (data.doubts) setDoubts(data.doubts);
         if (data.notes) setNotes(data.notes);
@@ -132,11 +141,36 @@ export default function MeetingRoomClient({ roomId }: { roomId: string }) {
         if (data.whiteboard) setWhiteboardPages(data.whiteboard);
         if (data.messages) setMessages(data.messages);
         if (data.polls) setPolls(data.polls);
+      } else if (res.status === 410) {
+        triggerToast("This classroom meeting has ended.");
+        setTimeout(() => router.push("/meet"), 2500);
+      } else {
+        setConnectionState("reconnecting");
       }
     } catch (e) {
       console.warn("Classroom data fetch error:", e);
+      setConnectionState("reconnecting");
     }
   };
+
+  useEffect(() => {
+    const handleOnline = () => {
+      setConnectionState("connected");
+      triggerToast("Network reconnected.");
+    };
+    const handleOffline = () => {
+      setConnectionState("disconnected");
+      triggerToast("Network disconnected. Reconnecting when online...");
+    };
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
 
   useEffect(() => {
     if (joined) {
@@ -148,6 +182,7 @@ export default function MeetingRoomClient({ roomId }: { roomId: string }) {
       }, 4000);
       return () => clearInterval(interval);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [joined, roomId]);
 
   // 3. User joins from PreJoinModal
@@ -184,11 +219,19 @@ export default function MeetingRoomClient({ roomId }: { roomId: string }) {
         });
 
         setLocalStream(stream);
+        setMediaWarning(null);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.warn("Could not acquire media stream:", err);
       setIsVideoOff(true);
       setIsMuted(true);
+      if (err?.name === "NotAllowedError" || err?.name === "PermissionDeniedError") {
+        setMediaWarning("Camera or microphone permission was denied by your browser. You can still participate in view-only mode.");
+      } else if (err?.name === "NotFoundError" || err?.name === "DevicesNotFoundError") {
+        setMediaWarning("No camera or microphone hardware device was found on this system.");
+      } else {
+        setMediaWarning("Media device unavailable or in use by another application.");
+      }
     }
 
     // Call join API to register attendance and receive LiveKit access token
@@ -623,6 +666,27 @@ export default function MeetingRoomClient({ roomId }: { roomId: string }) {
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
             LIVE
           </span>
+
+          {/* Network Connection Status Indicator */}
+          {connectionState === "connected" && (
+            <span className="hidden md:inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 text-[10px] font-mono" title="LiveKit WebRTC Stream Active">
+              <Wifi className="w-3 h-3 text-cyan-400" />
+              Connected
+            </span>
+          )}
+          {connectionState === "reconnecting" && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-300 text-[10px] font-mono animate-pulse" title="Re-establishing connection...">
+              <Clock className="w-3 h-3 text-amber-400" />
+              Reconnecting...
+            </span>
+          )}
+          {connectionState === "disconnected" && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-500/10 border border-red-500/20 text-red-400 text-[10px] font-mono" title="Network disconnected">
+              <WifiOff className="w-3 h-3 text-red-400" />
+              Offline
+            </span>
+          )}
+
           <span className="text-slate-500 hidden md:inline">|</span>
           <span className="text-slate-400 hidden md:inline">Code: <strong className="text-slate-200">{meeting?.code}</strong></span>
         </div>
@@ -638,6 +702,22 @@ export default function MeetingRoomClient({ roomId }: { roomId: string }) {
           </button>
         </div>
       </div>
+
+      {/* Media Hardware Alert Banner if camera/mic denied or missing */}
+      {mediaWarning && (
+        <div className="bg-amber-500/15 border-b border-amber-500/30 px-4 py-2 text-xs text-amber-200 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
+            <span>{mediaWarning}</span>
+          </div>
+          <button
+            onClick={() => setMediaWarning(null)}
+            className="text-amber-400 hover:text-amber-200 underline font-semibold text-[11px]"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
 
       {/* Main Classroom View Area */}
       <div className="flex-1 flex overflow-hidden relative">
