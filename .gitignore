@@ -42,3 +42,8 @@ yarn-error.log*
 # Large release archives
 SkillNova-Audit.zip
 *.zip
+
+# Local upload storage & DB backups
+storage/
+*.sql
+tsconfig.tsbuildinfo
