@@ -23,24 +23,24 @@ export const PRESET_ACCOUNTS: UserProfile[] = [
   },
   {
     id: "usr-student-soniya",
-    name: "Soniya Sharma",
-    email: "soniya@skillnova.edu",
+    name: "Soniya Chauhan",
+    email: "soniya.chauhan@skillnova.edu",
     role: "student",
-    enrolledTrack: "Generative AI & LLM Systems",
+    enrolledTrack: "MCA Python Programming",
   },
   {
     id: "usr-student-mohit",
-    name: "Mohit Kumar",
+    name: "Mohit",
     email: "mohit@skillnova.edu",
     role: "student",
-    enrolledTrack: "Generative AI & LLM Systems",
+    enrolledTrack: "MCA Python Programming",
   },
   {
     id: "tch-201",
     name: "Dr. Aryan Mehta",
     email: "aryan.mehta@skillnova.edu",
     role: "teacher",
-    enrolledTrack: "AI & Distributed Systems Faculty",
+    enrolledTrack: "MCA Python & AI Faculty",
   },
 ];
 

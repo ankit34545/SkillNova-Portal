@@ -31,40 +31,71 @@ async function seedAccounts() {
   });
   console.log(`[ADMIN CREATED/UPDATED]: ${admin.name} (${admin.email}, Role: ${admin.role})`);
 
-  // 2. Student Soniya Account
-  const soniya = await prisma.user.upsert({
-    where: { email: "soniya@skillnova.edu" },
-    update: {
-      name: "Soniya Sharma",
-      role: "STUDENT",
-      passwordHash,
-    },
-    create: {
-      id: "usr-student-soniya",
-      email: "soniya@skillnova.edu",
-      name: "Soniya Sharma",
-      role: "STUDENT",
-      passwordHash,
+  // 2. Student Soniya Chauhan Account
+  let soniya = await prisma.user.findFirst({
+    where: {
+      OR: [
+        { id: "usr-student-soniya" },
+        { email: "soniya.chauhan@skillnova.edu" },
+        { email: "soniya@skillnova.edu" },
+      ],
     },
   });
+
+  if (soniya) {
+    soniya = await prisma.user.update({
+      where: { id: soniya.id },
+      data: {
+        name: "Soniya Chauhan",
+        email: "soniya.chauhan@skillnova.edu",
+        role: "STUDENT",
+        passwordHash,
+      },
+    });
+  } else {
+    soniya = await prisma.user.create({
+      data: {
+        id: "usr-student-soniya",
+        email: "soniya.chauhan@skillnova.edu",
+        name: "Soniya Chauhan",
+        role: "STUDENT",
+        passwordHash,
+      },
+    });
+  }
   console.log(`[STUDENT CREATED/UPDATED]: ${soniya.name} (${soniya.email}, Role: ${soniya.role})`);
 
   // 3. Student Mohit Account
-  const mohit = await prisma.user.upsert({
-    where: { email: "mohit@skillnova.edu" },
-    update: {
-      name: "Mohit Kumar",
-      role: "STUDENT",
-      passwordHash,
-    },
-    create: {
-      id: "usr-student-mohit",
-      email: "mohit@skillnova.edu",
-      name: "Mohit Kumar",
-      role: "STUDENT",
-      passwordHash,
+  let mohit = await prisma.user.findFirst({
+    where: {
+      OR: [
+        { id: "usr-student-mohit" },
+        { email: "mohit@skillnova.edu" },
+      ],
     },
   });
+
+  if (mohit) {
+    mohit = await prisma.user.update({
+      where: { id: mohit.id },
+      data: {
+        name: "Mohit",
+        email: "mohit@skillnova.edu",
+        role: "STUDENT",
+        passwordHash,
+      },
+    });
+  } else {
+    mohit = await prisma.user.create({
+      data: {
+        id: "usr-student-mohit",
+        email: "mohit@skillnova.edu",
+        name: "Mohit",
+        role: "STUDENT",
+        passwordHash,
+      },
+    });
+  }
   console.log(`[STUDENT CREATED/UPDATED]: ${mohit.name} (${mohit.email}, Role: ${mohit.role})`);
 
   // Enroll both students in default AI course track meeting if present
