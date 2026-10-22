@@ -16,6 +16,12 @@ export async function GET(
   const type = searchParams.get("type");
   const roomId = params.roomId;
 
+  // Step 2 & 3: Validate room existence before returning resources
+  const meeting = await ClassroomRepository.getMeeting(roomId);
+  if (!meeting) {
+    return NextResponse.json({ error: "Classroom not found." }, { status: 404 });
+  }
+
   if (type === "doubts") return NextResponse.json({ doubts: await ClassroomRepository.getDoubts(roomId) });
   if (type === "notes") return NextResponse.json({ notes: await ClassroomRepository.getNotes(roomId) });
   if (type === "materials") return NextResponse.json({ materials: getMaterials(roomId) });
@@ -49,6 +55,11 @@ export async function POST(
 ) {
   try {
     const roomId = params.roomId;
+    const meeting = await ClassroomRepository.getMeeting(roomId);
+    if (!meeting) {
+      return NextResponse.json({ error: "Room not found." }, { status: 404 });
+    }
+
     const body = await req.json();
     const { action } = body;
 
@@ -147,11 +158,6 @@ export async function POST(
         leftAt: body.leftAt,
       });
       return NextResponse.json({ attendance: rec });
-    }
-
-    const meeting = await ClassroomRepository.getMeeting(roomId);
-    if (!meeting) {
-      return NextResponse.json({ error: "Room not found." }, { status: 404 });
     }
 
     // Privileged actions restriction check: verified via trusted server session token OR verified hostKey

@@ -337,6 +337,22 @@ async function runSecurityAuthSuite() {
     if (res.status !== 403) throw new Error(`Expected 403 Forbidden, got ${res.status}`);
   });
 
+  // 17. Nonexistent Room GET rejects with 404
+  await assert("Nonexistent classroom resource query safely returns 404 Not Found", async () => {
+    const res = await fetch(`${BASE_URL}/api/meet/nonexistent-fake-room-id-9999/classroom`);
+    if (res.status !== 404) throw new Error(`Expected 404 Not Found, got ${res.status}`);
+  });
+
+  // 18. Nonexistent Room POST rejects with 404
+  await assert("Nonexistent classroom action dispatch safely returns 404 Not Found", async () => {
+    const res = await fetch(`${BASE_URL}/api/meet/nonexistent-fake-room-id-9999/classroom`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "add-doubt", question: "Ghost question" }),
+    });
+    if (res.status !== 404) throw new Error(`Expected 404 Not Found, got ${res.status}`);
+  });
+
   console.log("==========================================================");
   console.log(`Security Test Results: ${passed} passed, ${failed} failed`);
   console.log("==========================================================");
