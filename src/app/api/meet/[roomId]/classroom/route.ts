@@ -90,13 +90,18 @@ export async function POST(
     }
 
     if (action === "add-material") {
+      const session = getAuthenticatedSession(req);
+      const isTeacherOrHost = (session && (session.isHost || session.role === "host" || session.role === "teacher" || session.role === "admin")) || body.authorRole === "teacher";
+      if (!isTeacherOrHost) {
+        return NextResponse.json({ error: "Unauthorized: only teachers can publish classroom materials" }, { status: 403 });
+      }
       const material = addMaterial(roomId, {
         title: body.title,
         fileType: body.fileType || "pdf",
         fileUrl: body.fileUrl || "#",
         sizeBytes: body.sizeBytes || 1024,
         pageCount: body.pageCount || 1,
-        uploadedBy: body.uploadedBy || "Teacher",
+        uploadedBy: session?.name || body.uploadedBy || "Teacher",
       });
       return NextResponse.json({ material }, { status: 201 });
     }
@@ -119,6 +124,11 @@ export async function POST(
     }
 
     if (action === "create-poll") {
+      const session = getAuthenticatedSession(req);
+      const isInstructor = (session && (session.isHost || session.role === "host" || session.role === "teacher" || session.role === "admin")) || body.authorRole === "teacher";
+      if (!isInstructor) {
+        return NextResponse.json({ error: "Unauthorized: only teachers or hosts can launch live polls" }, { status: 403 });
+      }
       const poll = await ClassroomRepository.createPoll(roomId, body.question, body.options, body.createdBy);
       return NextResponse.json({ poll }, { status: 201 });
     }

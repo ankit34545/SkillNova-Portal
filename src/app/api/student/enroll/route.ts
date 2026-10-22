@@ -6,7 +6,17 @@ import { ClassroomRepository } from "@/lib/repository";
 export async function GET(req: NextRequest) {
   try {
     const session = getAuthenticatedSession(req);
-    const userId = session?.userId || req.nextUrl.searchParams.get("userId") || "std-101";
+    const requestedUserId = req.nextUrl.searchParams.get("userId");
+
+    // Server-Side Authorization: If user session is active, restrict querying to own userId unless admin/teacher
+    if (session && requestedUserId && requestedUserId !== session.userId && session.role !== "admin" && session.role !== "teacher") {
+      return NextResponse.json(
+        { error: "Forbidden: Cannot access another student's enrollments." },
+        { status: 403 }
+      );
+    }
+
+    const userId = session?.userId || requestedUserId || "std-101";
 
     const enrollments = await prisma.membership.findMany({
       where: { userId },

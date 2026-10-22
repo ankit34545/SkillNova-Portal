@@ -266,6 +266,77 @@ async function runSecurityAuthSuite() {
     if (res.status !== 200) throw new Error(`Expected 200, got ${res.status}`);
   });
 
+  // 13. Cross-Student Note Isolation: Student A cannot fetch Student B's notes
+  await assert("Student cannot access another student's private notes (403)", async () => {
+    const soniyaToken = jwt.sign(
+      { userId: "usr-student-soniya", name: "Soniya Chauhan", role: "student" },
+      DEV_SECRET,
+      { expiresIn: "1h", algorithm: "HS256" }
+    );
+    // Attempt to access Mohit's notes using Soniya's token
+    const res = await fetch(`${BASE_URL}/api/student/notes?userId=usr-student-mohit`, {
+      headers: { Authorization: `Bearer ${soniyaToken}` },
+    });
+    if (res.status !== 403) throw new Error(`Expected 403 Forbidden, got ${res.status}`);
+  });
+
+  // 14. Cross-Student Enrollment Isolation: Student A cannot fetch Student B's enrollments
+  await assert("Student cannot access another student's private course enrollments (403)", async () => {
+    const soniyaToken = jwt.sign(
+      { userId: "usr-student-soniya", name: "Soniya Chauhan", role: "student" },
+      DEV_SECRET,
+      { expiresIn: "1h", algorithm: "HS256" }
+    );
+    // Attempt to access Mohit's enrollments using Soniya's token
+    const res = await fetch(`${BASE_URL}/api/student/enroll?userId=usr-student-mohit`, {
+      headers: { Authorization: `Bearer ${soniyaToken}` },
+    });
+    if (res.status !== 403) throw new Error(`Expected 403 Forbidden, got ${res.status}`);
+  });
+
+  // 15. Student cannot post classroom materials
+  await assert("Student cannot post official course materials (403)", async () => {
+    const soniyaToken = jwt.sign(
+      { userId: "usr-student-soniya", name: "Soniya Chauhan", role: "student", roomId: roomA.roomId },
+      DEV_SECRET,
+      { expiresIn: "1h", algorithm: "HS256" }
+    );
+    const res = await fetch(`${BASE_URL}/api/meet/${roomA.roomId}/classroom`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: `skillnova_session=${soniyaToken}`,
+      },
+      body: JSON.stringify({
+        action: "add-material",
+        title: "Malicious PDF Upload",
+      }),
+    });
+    if (res.status !== 403) throw new Error(`Expected 403 Forbidden, got ${res.status}`);
+  });
+
+  // 16. Student cannot launch classroom polls
+  await assert("Student cannot launch classroom polls (403)", async () => {
+    const soniyaToken = jwt.sign(
+      { userId: "usr-student-soniya", name: "Soniya Chauhan", role: "student", roomId: roomA.roomId },
+      DEV_SECRET,
+      { expiresIn: "1h", algorithm: "HS256" }
+    );
+    const res = await fetch(`${BASE_URL}/api/meet/${roomA.roomId}/classroom`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: `skillnova_session=${soniyaToken}`,
+      },
+      body: JSON.stringify({
+        action: "create-poll",
+        question: "Unauthorized Poll Question",
+        options: ["Yes", "No"],
+      }),
+    });
+    if (res.status !== 403) throw new Error(`Expected 403 Forbidden, got ${res.status}`);
+  });
+
   console.log("==========================================================");
   console.log(`Security Test Results: ${passed} passed, ${failed} failed`);
   console.log("==========================================================");
