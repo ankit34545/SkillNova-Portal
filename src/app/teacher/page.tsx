@@ -28,6 +28,7 @@ export default function TeacherWorkspacePage() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<"classes" | "assignments" | "doubts" | "materials">("classes");
   const [cohortData, setCohortData] = useState<any>(null);
+  const [teacherAnalytics, setTeacherAnalytics] = useState<any>(null);
   const [assignments, setAssignments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -68,6 +69,13 @@ export default function TeacherWorkspacePage() {
         if (res.ok) {
           const data = await res.json();
           setCohortData(data);
+        }
+        const analyticsRes = await fetch("/api/analytics?role=teacher", {
+          headers: { "x-skillnova-role": user.role },
+        });
+        if (analyticsRes.ok) {
+          const aData = await analyticsRes.json();
+          setTeacherAnalytics(aData);
         }
         await fetchAssignments();
       } catch {} finally {
@@ -227,28 +235,46 @@ export default function TeacherWorkspacePage() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div className="p-5 rounded-2xl bg-midnight-900 border border-white/10">
             <p className="text-xs text-slate-400">Assigned Cohorts</p>
-            <p className="text-2xl font-bold text-white mt-1">2 Active</p>
+            <p className="text-2xl font-bold text-white mt-1">
+              {teacherAnalytics?.metrics?.assignedCoursesCount !== undefined
+                ? `${teacherAnalytics.metrics.assignedCoursesCount} Active`
+                : "2 Active"}
+            </p>
             <span className="text-[10px] text-purple-400 mt-1 block">AI & Systems</span>
           </div>
 
           <div className="p-5 rounded-2xl bg-midnight-900 border border-white/10">
-            <p className="text-xs text-slate-400">Total Students</p>
-            <p className="text-2xl font-bold text-cyan-400 mt-1">142</p>
-            <span className="text-[10px] text-slate-500 mt-1 block">94% average attendance</span>
-          </div>
-
-          <div className="p-5 rounded-2xl bg-midnight-900 border border-white/10">
-            <p className="text-xs text-slate-400">Unresolved Doubts</p>
-            <p className="text-2xl font-bold text-amber-400 mt-1">
-              {cohortData?.pendingCount ? `${cohortData.pendingCount} Pending` : "2 Pending"}
+            <p className="text-xs text-slate-400">Total Enrolled Students</p>
+            <p className="text-2xl font-bold text-cyan-400 mt-1">
+              {teacherAnalytics?.metrics?.totalStudents !== undefined
+                ? teacherAnalytics.metrics.totalStudents
+                : "—"}
             </p>
-            <span className="text-[10px] text-amber-500/80 mt-1 block">1 marked urgent</span>
+            <span className="text-[10px] text-slate-500 mt-1 block">Authorized cohort students</span>
           </div>
 
           <div className="p-5 rounded-2xl bg-midnight-900 border border-white/10">
-            <p className="text-xs text-slate-400">Teaching Hours</p>
-            <p className="text-2xl font-bold text-emerald-400 mt-1">48.5 hrs</p>
-            <span className="text-[10px] text-slate-500 mt-1 block">This semester</span>
+            <p className="text-xs text-slate-400">Grading Queue</p>
+            <p className="text-2xl font-bold text-amber-400 mt-1">
+              {teacherAnalytics?.metrics?.pendingGradingQueue !== undefined
+                ? `${teacherAnalytics.metrics.pendingGradingQueue} Pending`
+                : cohortData?.pendingCount ? `${cohortData.pendingCount} Pending` : "0 Pending"}
+            </p>
+            <span className="text-[10px] text-amber-500/80 mt-1 block">
+              {teacherAnalytics?.metrics?.gradedSubmissionsCount !== undefined
+                ? `${teacherAnalytics.metrics.gradedSubmissionsCount} graded total`
+                : "Awaiting evaluation"}
+            </span>
+          </div>
+
+          <div className="p-5 rounded-2xl bg-midnight-900 border border-white/10">
+            <p className="text-xs text-slate-400">Total Submissions</p>
+            <p className="text-2xl font-bold text-emerald-400 mt-1">
+              {teacherAnalytics?.metrics?.totalSubmissionsReceived !== undefined
+                ? teacherAnalytics.metrics.totalSubmissionsReceived
+                : "0"}
+            </p>
+            <span className="text-[10px] text-slate-500 mt-1 block">Across all assignments</span>
           </div>
         </div>
 

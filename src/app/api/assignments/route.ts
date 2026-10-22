@@ -135,6 +135,18 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    // Notify enrolled cohort members if published
+    if (assignment.status === "PUBLISHED") {
+      const { NotificationService } = await import("@/lib/notifications");
+      await NotificationService.notifyEnrolledStudents(meeting.roomId, {
+        title: "New Assignment Published",
+        message: `${teacherName} published "${assignment.title}" in ${meeting.title}. Max Marks: ${assignment.maxMarks}.`,
+        type: "ASSIGNMENT_PUBLISHED",
+        link: "/dashboard?tab=assignments",
+        dedupeKey: `asgn-publish-${assignment.id}`,
+      });
+    }
+
     return NextResponse.json({ assignment }, { status: 201 });
   } catch (err: any) {
     console.error("[/api/assignments POST]", err);

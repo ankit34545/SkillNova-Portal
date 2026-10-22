@@ -43,6 +43,15 @@ enum SubmissionStatus {
   RESUBMITTED
 }
 
+enum NotificationType {
+  ASSIGNMENT_PUBLISHED
+  DEADLINE_APPROACHING
+  SUBMISSION_GRADED
+  RESUBMISSION_REQUESTED
+  CLASS_SCHEDULE_CHANGE
+  SYSTEM_ANNOUNCEMENT
+}
+
 model User {
   id            String         @id @default(uuid())
   email         String         @unique
@@ -64,6 +73,7 @@ model User {
   sessions      Session[]
   createdAssignments Assignment[] @relation("AssignmentTeacher")
   submissions   Submission[]
+  notifications Notification[]
 
   @@index([email])
 }
@@ -341,4 +351,22 @@ model Submission {
   @@unique([assignmentId, studentId])
   @@index([assignmentId])
   @@index([studentId])
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String
+  title     String
+  message   String
+  type      NotificationType @default(SYSTEM_ANNOUNCEMENT)
+  link      String?
+  isRead    Boolean          @default(false)
+  dedupeKey String?          @unique
+  createdAt DateTime         @default(now())
+
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([type])
 }

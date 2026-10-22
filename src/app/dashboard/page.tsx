@@ -42,6 +42,8 @@ export default function StudentDashboardPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submissionStatusMessage, setSubmissionStatusMessage] = useState<string | null>(null);
 
+  const [analyticsData, setAnalyticsData] = useState<any>(null);
+
   const fetchAssignments = async () => {
     try {
       const res = await fetch("/api/assignments");
@@ -54,6 +56,18 @@ export default function StudentDashboardPage() {
     }
   };
 
+  const fetchAnalytics = async () => {
+    try {
+      const res = await fetch("/api/analytics?role=student");
+      if (res.ok) {
+        const data = await res.json();
+        setAnalyticsData(data);
+      }
+    } catch (e) {
+      console.error("Analytics fetch error:", e);
+    }
+  };
+
   React.useEffect(() => {
     async function loadData() {
       try {
@@ -62,7 +76,7 @@ export default function StudentDashboardPage() {
           const data = await res.json();
           setDashboardData(data);
         }
-        await fetchAssignments();
+        await Promise.all([fetchAssignments(), fetchAnalytics()]);
       } catch (e) {
         console.error("Dashboard fetch error:", e);
       } finally {
@@ -265,24 +279,34 @@ export default function StudentDashboardPage() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-8 pt-6 border-t border-white/10">
             <div>
               <p className="text-xs text-slate-400">Enrolled Curricula</p>
-              <p className="text-xl font-bold text-white mt-1">3 Tracks</p>
+              <p className="text-xl font-bold text-white mt-1">
+                {analyticsData?.metrics?.enrolledCoursesCount ?? enrolledTracks.length} Tracks
+              </p>
             </div>
             <div>
-              <p className="text-xs text-slate-400">Total Live Sessions</p>
+              <p className="text-xs text-slate-400">Assignments Done</p>
               <p className="text-xl font-bold text-emerald-400 mt-1">
-                {dashboardData?.metrics?.totalEnrolled ?? 6} Sessions
+                {analyticsData?.metrics?.completedSubmissionsCount ?? 0} Completed
               </p>
+              <span className="text-[10px] text-slate-400 block font-mono">
+                {analyticsData?.metrics?.pendingAssignmentsCount ?? 0} Pending
+              </span>
             </div>
             <div>
-              <p className="text-xs text-slate-400">Doubt Inquiries</p>
+              <p className="text-xs text-slate-400">Academic Standing</p>
               <p className="text-xl font-bold text-cyan-400 mt-1">
-                {dashboardData?.metrics?.resolvedDoubts ? `${dashboardData.metrics.resolvedDoubts} Resolved` : "6 Resolved"}
+                {analyticsData?.metrics?.averageGradePercentage !== null && analyticsData?.metrics?.averageGradePercentage !== undefined
+                  ? `${analyticsData.metrics.averageGradePercentage}% Avg`
+                  : "Pending Grade"}
               </p>
+              <span className="text-[10px] text-cyan-400/80 block font-mono">
+                {analyticsData?.metrics?.gradedCount ?? 0} Graded Deliverables
+              </span>
             </div>
             <div>
               <p className="text-xs text-slate-400">Attendance Logged</p>
               <p className="text-xl font-bold text-purple-400 mt-1">
-                {dashboardData?.metrics?.totalAttendance ? `${dashboardData.metrics.totalAttendance} Records` : "6 Records"}
+                {analyticsData?.metrics?.attendanceSessionsCount ?? dashboardData?.metrics?.totalAttendance ?? 0} Sessions
               </p>
             </div>
           </div>

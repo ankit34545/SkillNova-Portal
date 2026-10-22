@@ -69,6 +69,17 @@ export async function POST(
       },
     });
 
+    // Notify student about released grade and feedback
+    const { NotificationService } = await import("@/lib/notifications");
+    await NotificationService.sendNotification({
+      userId: updatedSubmission.studentId,
+      title: "Assignment Graded",
+      message: `Your submission for "${submission.assignment.title}" was evaluated: ${marksNum}/${submission.assignment.maxMarks} marks.`,
+      type: "SUBMISSION_GRADED",
+      link: "/dashboard?tab=assignments",
+      dedupeKey: `grade-released-${updatedSubmission.id}`,
+    });
+
     return NextResponse.json({ submission: updatedSubmission });
   } catch (err: any) {
     console.error("[/api/assignments/[id]/grade POST]", err);

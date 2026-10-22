@@ -27,30 +27,64 @@ export default function AppHeader({
   const [showNotifications, setShowNotifications] = useState(false);
   const [showAccountMenu, setShowAccountMenu] = useState(false);
 
-  const notifications = [
-    {
-      id: 1,
-      title: "Generative AI Masterclass is Live",
-      desc: "Dr. Aryan Mehta started session 'RAG Optimization'",
-      time: "2m ago",
-      href: "/meet/ai-eng-live",
-      isLive: true,
-    },
-    {
-      id: 2,
-      title: "Doubt Answered",
-      desc: "Your question on LoRA fine-tuning received a solution.",
-      time: "1h ago",
-      href: "/dashboard?tab=doubts",
-    },
-    {
-      id: 3,
-      title: "Assignment Due Tomorrow",
-      desc: "Distributed Systems: Kafka topology simulation",
-      time: "4h ago",
-      href: "/courses",
-    },
-  ];
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [unreadCount, setUnreadCount] = useState<number>(0);
+  const [loadingNotifs, setLoadingNotifs] = useState(false);
+
+  const fetchNotifications = async () => {
+    try {
+      setLoadingNotifs(true);
+      const res = await fetch(`/api/notifications?userId=${user.id}`, {
+        headers: { "x-skillnova-role": user.role },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setNotifications(data.notifications || []);
+        setUnreadCount(data.unreadCount || 0);
+      }
+    } catch {} finally {
+      setLoadingNotifs(false);
+    }
+  };
+
+  React.useEffect(() => {
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 15000);
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user.id, user.role]);
+
+  const handleMarkAllRead = async () => {
+    try {
+      await fetch("/api/notifications", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "x-skillnova-role": user.role,
+        },
+        body: JSON.stringify({ markAll: true, userId: user.id }),
+      });
+      setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+      setUnreadCount(0);
+    } catch {}
+  };
+
+  const handleMarkSingleRead = async (id: string) => {
+    try {
+      await fetch("/api/notifications", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "x-skillnova-role": user.role,
+        },
+        body: JSON.stringify({ notificationId: id }),
+      });
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
+      );
+      setUnreadCount((c) => Math.max(0, c - 1));
+    } catch {}
+  };
 
   return (
     <header className="sticky top-0 z-30 h-16 bg-midnight-950/80 backdrop-blur-md border-b border-white/10 px-4 sm:px-6 flex items-center justify-between">
@@ -123,43 +157,72 @@ export default function AppHeader({
             aria-label="Notifications"
           >
             <Bell className="w-4 h-4" />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-cyan-400 ring-2 ring-midnight-950" />
+            {unreadCount > 0 && (
+              <span className="absolute top-1 right-1 px-1.5 py-0.2 rounded-full bg-cyan-400 text-midnight-950 font-bold text-[9px] ring-2 ring-midnight-950">
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </span>
+            )}
           </button>
 
           {showNotifications && (
             <div className="absolute right-0 mt-2 w-80 sm:w-96 rounded-2xl bg-midnight-900 border border-white/10 shadow-2xl p-4 z-50 animate-in fade-in zoom-in-95">
               <div className="flex items-center justify-between pb-3 border-b border-white/10">
-                <span className="text-sm font-semibold text-white">
-                  Notifications
-                </span>
-                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300">
-                  3 New
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold text-white">
+                    Notification Center
+                  </span>
+                  {unreadCount > 0 && (
+                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300">
+                      {unreadCount} New
+                    </span>
+                  )}
+                </div>
+                {unreadCount > 0 && (
+                  <button
+                    onClick={handleMarkAllRead}
+                    className="text-[11px] text-cyan-400 hover:text-cyan-300 font-semibold"
+                  >
+                    Mark all as read
+                  </button>
+                )}
               </div>
               <div className="divide-y divide-white/5 max-h-72 overflow-y-auto">
-                {notifications.map((n) => (
-                  <Link
-                    key={n.id}
-                    href={n.href}
-                    onClick={() => setShowNotifications(false)}
-                    className="block py-3 hover:bg-white/[0.02] transition-colors rounded-lg px-2"
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <p className="text-xs font-semibold text-white flex items-center gap-1.5">
-                        {n.isLive && (
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                        )}
-                        {n.title}
-                      </p>
-                      <span className="text-[10px] text-slate-500 shrink-0">
-                        {n.time}
-                      </span>
+                {notifications.length > 0 ? (
+                  notifications.map((n) => (
+                    <div
+                      key={n.id}
+                      className={`py-3 px-2 rounded-xl transition-colors ${
+                        !n.isRead ? "bg-cyan-500/[0.04]" : "hover:bg-white/[0.02]"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <Link
+                          href={n.link || "/dashboard"}
+                          onClick={() => {
+                            setShowNotifications(false);
+                            if (!n.isRead) handleMarkSingleRead(n.id);
+                          }}
+                          className="flex-1"
+                        >
+                          <p className={`text-xs flex items-center gap-1.5 ${!n.isRead ? "font-bold text-white" : "font-medium text-slate-300"}`}>
+                            {!n.isRead && <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 shrink-0" />}
+                            <span>{n.title}</span>
+                          </p>
+                          <p className="text-[11px] text-slate-400 mt-0.5 line-clamp-2">
+                            {n.message}
+                          </p>
+                        </Link>
+                        <span className="text-[10px] text-slate-500 shrink-0 font-mono">
+                          {new Date(n.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                        </span>
+                      </div>
                     </div>
-                    <p className="text-xs text-slate-400 mt-1 line-clamp-2">
-                      {n.desc}
-                    </p>
-                  </Link>
-                ))}
+                  ))
+                ) : (
+                  <div className="p-6 text-center text-xs text-slate-400">
+                    No notifications yet.
+                  </div>
+                )}
               </div>
             </div>
           )}
