@@ -68,7 +68,13 @@ export async function POST(req: NextRequest) {
     response.headers.set("Set-Cookie", createSessionCookie(token));
     return response;
   } catch (error: any) {
-    console.error("[/api/auth/login] error:", error);
+    const errorMsg = error?.message || String(error);
+    const errorCode = error?.code || "UNKNOWN";
+    console.error("[/api/auth/login] Authentication failure:", {
+      code: errorCode,
+      message: errorMsg,
+      name: error?.name,
+    });
     return NextResponse.json(
       { error: "Internal server error during authentication." },
       { status: 500 }

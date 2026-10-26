@@ -23,9 +23,15 @@ export async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, 12);
 }
 
-/** Compare plain-text password with bcrypt hash */
+/** Compare plain-text password with bcrypt hash safely */
 export async function verifyPassword(password: string, hash: string): Promise<boolean> {
-  return bcrypt.compare(password, hash);
+  if (!password || !hash) return false;
+  try {
+    return await bcrypt.compare(password, hash);
+  } catch (err: any) {
+    console.error("[auth:verifyPassword] Error comparing password hash:", err?.message || err);
+    return false;
+  }
 }
 
 /** Sign secure short-lived session token (4h expiry) */

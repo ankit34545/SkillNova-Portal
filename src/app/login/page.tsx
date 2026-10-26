@@ -134,64 +134,6 @@ export default function LoginPage() {
               <ArrowRight className="w-4 h-4" />
             </button>
           </form>
-
-          <div className="pt-4 border-t border-white/10 space-y-3">
-            <p className="text-xs font-semibold text-slate-300 text-center">
-              Quick Sign In (Tap to Auto-Fill):
-            </p>
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              <button
-                type="button"
-                onClick={() => {
-                  setEmail("admin@skillnova.edu");
-                  setPassword("SkillNova@2026");
-                }}
-                className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 hover:bg-amber-500/20 text-left transition-colors"
-              >
-                <div className="font-bold text-[11px]">Administrator</div>
-                <div className="text-[10px] text-slate-400 font-mono truncate">admin@skillnova.edu</div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setEmail("teacher@skillnova.edu");
-                  setPassword("SkillNova@2026");
-                }}
-                className="p-2 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-300 hover:bg-purple-500/20 text-left transition-colors"
-              >
-                <div className="font-bold text-[11px]">Faculty (Teacher)</div>
-                <div className="text-[10px] text-slate-400 font-mono truncate">teacher@skillnova.edu</div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setEmail("soniya.chauhan@skillnova.edu");
-                  setPassword("SkillNova@2026");
-                }}
-                className="p-2 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 hover:bg-cyan-500/20 text-left transition-colors"
-              >
-                <div className="font-bold text-[11px]">Student (Soniya)</div>
-                <div className="text-[10px] text-slate-400 font-mono truncate">soniya.chauhan@skillnova.edu</div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setEmail("mohit@skillnova.edu");
-                  setPassword("SkillNova@2026");
-                }}
-                className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 hover:bg-emerald-500/20 text-left transition-colors"
-              >
-                <div className="font-bold text-[11px]">Student (Mohit)</div>
-                <div className="text-[10px] text-slate-400 font-mono truncate">mohit@skillnova.edu</div>
-              </button>
-            </div>
-            <p className="text-[10px] text-slate-500 text-center font-mono pt-1">
-              Default Password: <span className="text-slate-300">SkillNova@2026</span>
-            </p>
-          </div>
         </div>
       </div>
     </div>
