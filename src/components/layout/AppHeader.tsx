@@ -11,8 +11,10 @@ import {
   ChevronRight,
   Shield,
   HelpCircle,
+  LogOut,
+  User as UserIcon,
 } from "lucide-react";
-import { useAuth, PRESET_ACCOUNTS } from "@/lib/auth-context";
+import { useAuth } from "@/lib/auth-context";
 
 interface AppHeaderProps {
   onToggleSidebar?: () => void;
@@ -23,7 +25,7 @@ export default function AppHeader({
   onToggleSidebar,
   breadcrumbs,
 }: AppHeaderProps) {
-  const { user, switchAccount } = useAuth();
+  const { user, logout } = useAuth();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showAccountMenu, setShowAccountMenu] = useState(false);
 
@@ -32,11 +34,10 @@ export default function AppHeader({
   const [loadingNotifs, setLoadingNotifs] = useState(false);
 
   const fetchNotifications = async () => {
+    if (!user) return;
     try {
       setLoadingNotifs(true);
-      const res = await fetch(`/api/notifications?userId=${user.id}`, {
-        headers: { "x-skillnova-role": user.role },
-      });
+      const res = await fetch(`/api/notifications?userId=${user.id}`);
       if (res.ok) {
         const data = await res.json();
         setNotifications(data.notifications || []);
@@ -48,13 +49,16 @@ export default function AppHeader({
   };
 
   React.useEffect(() => {
-    fetchNotifications();
-    const interval = setInterval(fetchNotifications, 15000);
-    return () => clearInterval(interval);
+    if (user) {
+      fetchNotifications();
+      const interval = setInterval(fetchNotifications, 15000);
+      return () => clearInterval(interval);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user.id, user.role]);
+  }, [user?.id, user?.role]);
 
   const handleMarkAllRead = async () => {
+    if (!user) return;
     try {
       await fetch("/api/notifications", {
         method: "PATCH",
@@ -70,6 +74,7 @@ export default function AppHeader({
   };
 
   const handleMarkSingleRead = async (id: string) => {
+    if (!user) return;
     try {
       await fetch("/api/notifications", {
         method: "PATCH",
@@ -228,64 +233,71 @@ export default function AppHeader({
           )}
         </div>
 
-        {/* User Account Switcher Dropdown */}
+        {/* User Account / Profile Menu */}
         <div className="relative">
-          <button
-            onClick={() => setShowAccountMenu(!showAccountMenu)}
-            className="flex items-center gap-2 pl-2 border-l border-white/10 hover:opacity-80 transition-opacity"
-            title="Switch User Account"
-          >
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-purple-600 to-cyan-400 flex items-center justify-center text-white text-xs font-bold shadow-glow-violet">
-              {user.name ? user.name[0] : "U"}
-            </div>
-            <div className="hidden lg:flex flex-col text-left">
-              <span className="text-xs font-medium text-slate-200">
-                {user.name.split(" ")[0]}
-              </span>
-              <span className="text-[10px] text-slate-400 uppercase font-mono">
-                {user.role}
-              </span>
-            </div>
-          </button>
+          {user ? (
+            <>
+              <button
+                onClick={() => setShowAccountMenu(!showAccountMenu)}
+                className="flex items-center gap-2 pl-2 border-l border-white/10 hover:opacity-80 transition-opacity"
+                title="Account Menu"
+              >
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-purple-600 to-cyan-400 flex items-center justify-center text-white text-xs font-bold shadow-glow-violet">
+                  {user.name ? user.name[0] : "U"}
+                </div>
+                <div className="hidden lg:flex flex-col text-left">
+                  <span className="text-xs font-medium text-slate-200">
+                    {user.name.split(" ")[0]}
+                  </span>
+                  <span className="text-[10px] text-slate-400 uppercase font-mono">
+                    {user.role}
+                  </span>
+                </div>
+              </button>
 
-          {showAccountMenu && (
-            <div className="absolute right-0 mt-2 w-64 rounded-2xl bg-midnight-900 border border-white/10 shadow-2xl p-3 z-50">
-              <div className="pb-2 mb-2 border-b border-white/10">
-                <span className="text-xs font-semibold text-slate-300">
-                  Switch Active Account
-                </span>
-              </div>
-              <div className="space-y-1">
-                {PRESET_ACCOUNTS.map((acc) => (
-                  <button
-                    key={acc.email}
-                    onClick={() => {
-                      switchAccount(acc.email);
-                      setShowAccountMenu(false);
-                    }}
-                    className={`w-full text-left p-2 rounded-xl transition-all flex items-center justify-between text-xs ${
-                      user.email === acc.email
-                        ? "bg-cyan-500/10 text-cyan-300 border border-cyan-500/30"
-                        : "hover:bg-white/5 text-slate-300"
-                    }`}
-                  >
-                    <div>
-                      <div className="font-medium text-white">{acc.name}</div>
-                      <div className="text-[10px] text-slate-400 font-mono">{acc.email}</div>
+              {showAccountMenu && (
+                <div className="absolute right-0 mt-2 w-64 rounded-2xl bg-midnight-900 border border-white/10 shadow-2xl p-4 z-50">
+                  <div className="pb-3 border-b border-white/10 flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-purple-600 to-cyan-400 flex items-center justify-center text-white font-bold text-sm shrink-0">
+                      {user.name[0]}
                     </div>
-                    <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded uppercase ${
-                      acc.role === "admin"
-                        ? "bg-amber-500/20 text-amber-300"
-                        : acc.role === "teacher"
-                        ? "bg-purple-500/20 text-purple-300"
-                        : "bg-cyan-500/20 text-cyan-300"
-                    }`}>
-                      {acc.role}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
+                    <div className="flex-1 overflow-hidden">
+                      <p className="text-xs font-semibold text-white truncate">{user.name}</p>
+                      <p className="text-[11px] text-slate-400 font-mono truncate">{user.email}</p>
+                      <span className={`inline-block mt-1 text-[9px] font-mono px-2 py-0.5 rounded uppercase font-semibold ${
+                        user.role === "admin"
+                          ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                          : user.role === "teacher"
+                          ? "bg-purple-500/20 text-purple-300 border border-purple-500/30"
+                          : "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30"
+                      }`}>
+                        {user.role}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="pt-3">
+                    <button
+                      onClick={async () => {
+                        setShowAccountMenu(false);
+                        await logout();
+                      }}
+                      className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-medium text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 transition-colors"
+                    >
+                      <LogOut className="w-3.5 h-3.5" />
+                      <span>Sign Out</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
+          ) : (
+            <Link
+              href="/login"
+              className="px-3.5 py-1.5 rounded-xl text-xs font-semibold text-white bg-gradient-to-r from-purple-600 to-cyan-500 hover:from-purple-500 hover:to-cyan-400 shadow-glow-violet transition-all"
+            >
+              Sign In
+            </Link>
           )}
         </div>
       </div>

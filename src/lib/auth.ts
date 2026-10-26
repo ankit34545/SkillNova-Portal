@@ -68,3 +68,11 @@ export function createSessionCookie(token: string): string {
     isProd ? "; Secure" : ""
   }`;
 }
+
+/** Build HttpOnly cookie string to clear/invalidate session on logout */
+export function clearSessionCookie(): string {
+  const isProd = process.env.NODE_ENV === "production";
+  return `${SESSION_COOKIE_NAME}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT${
+    isProd ? "; Secure" : ""
+  }`;
+}

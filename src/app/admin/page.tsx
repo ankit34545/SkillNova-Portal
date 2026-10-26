@@ -19,9 +19,11 @@ import {
 } from "lucide-react";
 import AppShell from "@/components/layout/AppShell";
 import { useAuth } from "@/lib/auth-context";
+import { useRouter } from "next/navigation";
 
 export default function AdminDashboardPage() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<"overview" | "users" | "courses" | "audit">("overview");
   const [dbStatus, setDbStatus] = useState<string>("Checking...");
   const [livekitStatus, setLivekitStatus] = useState<string>("Checking...");
@@ -30,11 +32,16 @@ export default function AdminDashboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!authLoading && !user) {
+      router.push("/login");
+    }
+  }, [user, authLoading, router]);
+
+  useEffect(() => {
     async function fetchMetrics() {
+      if (!user || user.role !== "admin") return;
       try {
-        const res = await fetch("/api/admin/metrics", {
-          headers: { "x-skillnova-role": user.role },
-        });
+        const res = await fetch("/api/admin/metrics");
         if (res.ok) {
           const data = await res.json();
           setDbStatus(data.dbHealth === "connected" ? "Connected (Live PostgreSQL)" : "Offline / Unreachable");
@@ -50,11 +57,13 @@ export default function AdminDashboardPage() {
         setLoading(false);
       }
     }
-    fetchMetrics();
-  }, [user.role]);
+    if (user && user.role === "admin") {
+      fetchMetrics();
+    }
+  }, [user]);
 
-  // If student attempts to view admin console, present access denied screen
-  if (user.role === "student") {
+  // If user is not admin, present access denied screen
+  if (!user || user.role !== "admin") {
     return (
       <AppShell breadcrumbs={[{ label: "Access Denied" }]}>
         <div className="max-w-xl mx-auto my-12 p-8 rounded-3xl bg-midnight-900 border border-rose-500/30 text-center space-y-4">
@@ -63,15 +72,21 @@ export default function AdminDashboardPage() {
           </div>
           <h2 className="text-xl font-bold text-white">Administrator Access Required</h2>
           <p className="text-sm text-slate-400 leading-relaxed">
-            Your current account (<span className="text-white font-medium">{user.name}</span>) is signed in with the <strong className="text-cyan-400">Student</strong> role. You do not have permissions to access platform administration or infrastructure metrics.
+            Your current account (<span className="text-white font-medium">{user?.name || "Guest"}</span>) is signed in with the <strong className="text-cyan-400">{user?.role || "unauthenticated"}</strong> role. You do not have permissions to access platform administration or infrastructure metrics.
           </p>
-          <div className="pt-2">
+          <div className="pt-2 flex items-center justify-center gap-3">
             <Link
               href="/dashboard"
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-xs bg-white/10 hover:bg-white/15 text-white transition-colors"
             >
-              <span>Return to Student Dashboard</span>
+              <span>Return to Dashboard</span>
               <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+            <Link
+              href="/login"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-xs bg-gradient-to-r from-purple-600 to-cyan-500 text-white transition-colors"
+            >
+              <span>Sign In as Admin</span>
             </Link>
           </div>
         </div>

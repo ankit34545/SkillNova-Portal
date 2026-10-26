@@ -23,9 +23,11 @@ import {
 import AppShell from "@/components/layout/AppShell";
 import Button from "@/components/ui/Button";
 import { useAuth } from "@/lib/auth-context";
+import { useRouter } from "next/navigation";
 
 export default function TeacherWorkspacePage() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<"classes" | "assignments" | "doubts" | "materials">("classes");
   const [cohortData, setCohortData] = useState<any>(null);
   const [teacherAnalytics, setTeacherAnalytics] = useState<any>(null);
@@ -49,6 +51,7 @@ export default function TeacherWorkspacePage() {
   const [gradingError, setGradingError] = useState<string | null>(null);
 
   const fetchAssignments = async () => {
+    if (!user) return;
     try {
       const res = await fetch("/api/assignments", {
         headers: { "x-skillnova-role": user.role },
@@ -61,18 +64,25 @@ export default function TeacherWorkspacePage() {
   };
 
   useEffect(() => {
+    if (!authLoading) {
+      if (!user) {
+        router.push("/login");
+      } else if (user.role !== "teacher" && user.role !== "admin") {
+        router.push("/dashboard");
+      }
+    }
+  }, [user, authLoading, router]);
+
+  useEffect(() => {
     async function fetchCohort() {
+      if (!user) return;
       try {
-        const res = await fetch("/api/teacher/cohort", {
-          headers: { "x-skillnova-role": user.role },
-        });
+        const res = await fetch("/api/teacher/cohort");
         if (res.ok) {
           const data = await res.json();
           setCohortData(data);
         }
-        const analyticsRes = await fetch("/api/analytics?role=teacher", {
-          headers: { "x-skillnova-role": user.role },
-        });
+        const analyticsRes = await fetch("/api/analytics?role=teacher");
         if (analyticsRes.ok) {
           const aData = await analyticsRes.json();
           setTeacherAnalytics(aData);
@@ -82,12 +92,15 @@ export default function TeacherWorkspacePage() {
         setLoading(false);
       }
     }
-    fetchCohort();
+    if (user && (user.role === "teacher" || user.role === "admin")) {
+      fetchCohort();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user.role]);
+  }, [user?.role]);
 
   const handleCreateAssignment = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) return;
     setCreating(true);
     setCreateError(null);
     try {
@@ -125,7 +138,7 @@ export default function TeacherWorkspacePage() {
 
   const handleGradeSubmission = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!gradingModalSubmission) return;
+    if (!gradingModalSubmission || !user) return;
     setGradingSubmitting(true);
     setGradingError(null);
     try {
@@ -158,7 +171,7 @@ export default function TeacherWorkspacePage() {
   };
 
   // Access Control: Block unverified students
-  if (user.role === "student") {
+  if (!user || user.role === "student") {
     return (
       <AppShell breadcrumbs={[{ label: "Access Denied" }]}>
         <div className="max-w-xl mx-auto my-12 p-8 rounded-3xl bg-midnight-900 border border-purple-500/30 text-center space-y-4">
@@ -167,15 +180,21 @@ export default function TeacherWorkspacePage() {
           </div>
           <h2 className="text-xl font-bold text-white">Faculty & Mentor Access Required</h2>
           <p className="text-sm text-slate-400 leading-relaxed">
-            Your current account (<span className="text-white font-medium">{user.name}</span>) has student privileges. To host cohort classes, resolve student doubts, or publish syllabus materials, you must sign in as an instructor or administrator.
+            Your current account (<span className="text-white font-medium">{user?.name || "Guest"}</span>) does not have faculty privileges. To host cohort classes, resolve student doubts, or publish syllabus materials, you must sign in as an instructor or administrator.
           </p>
-          <div className="pt-2">
+          <div className="pt-2 flex items-center justify-center gap-3">
             <Link
               href="/dashboard"
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-xs bg-white/10 hover:bg-white/15 text-white transition-colors"
             >
               <span>Return to Student Dashboard</span>
               <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+            <Link
+              href="/login"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-xs bg-gradient-to-r from-purple-600 to-cyan-500 text-white transition-colors"
+            >
+              <span>Sign In as Teacher</span>
             </Link>
           </div>
         </div>
@@ -210,7 +229,7 @@ export default function TeacherWorkspacePage() {
           <div>
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/30 text-purple-300 text-xs font-mono mb-2">
               <GraduationCap className="w-3.5 h-3.5" />
-              <span>Faculty Portal • Dr. Aryan Mehta</span>
+              <span>Faculty Portal • {user?.name || "Instructor"}</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
               Instructor Dashboard & Classroom Manager

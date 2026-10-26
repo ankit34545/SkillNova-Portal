@@ -28,8 +28,13 @@ import {
 } from "lucide-react";
 import AppShell from "@/components/layout/AppShell";
 import Button from "@/components/ui/Button";
+import { useAuth } from "@/lib/auth-context";
+import { useRouter } from "next/navigation";
 
 export default function StudentDashboardPage() {
+  const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
+
   const [activeTab, setActiveTab] = useState<
     "overview" | "assignments" | "schedule" | "notes" | "doubts" | "materials"
   >("overview");
@@ -69,6 +74,12 @@ export default function StudentDashboardPage() {
   };
 
   React.useEffect(() => {
+    if (!authLoading && !user) {
+      router.push("/login");
+    }
+  }, [user, authLoading, router]);
+
+  React.useEffect(() => {
     async function loadData() {
       try {
         const res = await fetch("/api/student/dashboard");
@@ -83,8 +94,10 @@ export default function StudentDashboardPage() {
         setLoading(false);
       }
     }
-    loadData();
-  }, []);
+    if (user) {
+      loadData();
+    }
+  }, [user]);
 
   const handleOpenSubmissionModal = (assignment: any) => {
     setSubmissionModal(assignment);
@@ -246,14 +259,13 @@ export default function StudentDashboardPage() {
             <div>
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 text-xs font-mono mb-3">
                 <Sparkles className="w-3.5 h-3.5" />
-                <span>Semester 6 • Campus SDE Track</span>
+                <span>Active Learner Portal • {user?.role ? user.role.toUpperCase() : "STUDENT"}</span>
               </div>
               <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-                Welcome back, Arjun 👋
+                Welcome back, {user?.name ? user.name.split(" ")[0] : "Learner"} 👋
               </h1>
               <p className="mt-1 text-slate-300 text-sm max-w-xl">
-                You are on a 12-day coding streak! Your next live masterclass on{" "}
-                <strong className="text-white">RAG Architectures</strong> is happening right now.
+                Access your real-time curriculum deliverables, live classes, course assignments, and verified grades.
               </p>
             </div>
 

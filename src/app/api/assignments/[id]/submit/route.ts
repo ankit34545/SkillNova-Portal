@@ -45,8 +45,9 @@ export async function POST(
       const customStudentId = formData.get("studentId")?.toString();
       const customStudentName = formData.get("studentName")?.toString();
 
-      if (customStudentId) studentId = customStudentId;
-      if (customStudentName) studentName = customStudentName;
+      // Only allow customStudentId if no session is set (for automated testing / CLI)
+      if (!session && customStudentId) studentId = customStudentId;
+      if (!session && customStudentName) studentName = customStudentName;
       if (contentField) content = contentField.trim();
 
       if (file && file.size > 0) {
@@ -79,8 +80,8 @@ export async function POST(
     } else {
       const body = await req.json();
       content = body.content?.trim();
-      if (body.studentId) studentId = body.studentId;
-      if (body.studentName) studentName = body.studentName;
+      if (!session && body.studentId) studentId = body.studentId;
+      if (!session && body.studentName) studentName = body.studentName;
     }
 
     if (!content && !fileKey) {

@@ -41,7 +41,7 @@ export default function AppSidebar({
   setCollapsed: (c: boolean) => void;
 }) {
   const pathname = usePathname();
-  const { user, setRole } = useAuth();
+  const { user, logout } = useAuth();
 
   const studentNav: NavItem[] = [
     { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -75,9 +75,9 @@ export default function AppSidebar({
   ];
 
   const navItems =
-    user.role === "admin"
+    user?.role === "admin"
       ? adminNav
-      : user.role === "teacher"
+      : user?.role === "teacher"
       ? teacherNav
       : studentNav;
 
@@ -101,7 +101,7 @@ export default function AppSidebar({
                 SkillNova
               </span>
               <span className="text-[10px] font-mono tracking-wider text-purple-400 uppercase">
-                {user.role} Portal
+                {user?.role || "Learning"} Portal
               </span>
             </div>
           )}
@@ -119,47 +119,26 @@ export default function AppSidebar({
         </button>
       </div>
 
-      {/* Role Switcher Pill */}
+      {/* Role Badge Indicator */}
       {!collapsed ? (
-        <div className="p-3 mx-3 my-2 rounded-xl bg-white/[0.03] border border-white/5 flex items-center justify-between">
-          <span className="text-xs text-slate-400 font-medium">Role:</span>
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => setRole("student")}
-              className={`px-2 py-0.5 rounded text-[11px] font-medium transition-colors ${
-                user.role === "student"
-                  ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40"
-                  : "text-slate-400 hover:text-white"
-              }`}
-            >
-              Student
-            </button>
-            <button
-              onClick={() => setRole("teacher")}
-              className={`px-2 py-0.5 rounded text-[11px] font-medium transition-colors ${
-                user.role === "teacher"
-                  ? "bg-purple-500/20 text-purple-300 border border-purple-500/40"
-                  : "text-slate-400 hover:text-white"
-              }`}
-            >
-              Teacher
-            </button>
-            <button
-              onClick={() => setRole("admin")}
-              className={`px-2 py-0.5 rounded text-[11px] font-medium transition-colors ${
-                user.role === "admin"
-                  ? "bg-amber-500/20 text-amber-300 border border-amber-500/40"
-                  : "text-slate-400 hover:text-white"
-              }`}
-            >
-              Admin
-            </button>
-          </div>
+        <div className="p-2.5 mx-3 my-2 rounded-xl bg-white/[0.03] border border-white/5 flex items-center justify-between">
+          <span className="text-xs text-slate-400 font-medium">Session Role:</span>
+          <span
+            className={`px-2.5 py-0.5 rounded-full text-[11px] font-mono uppercase font-semibold border ${
+              user?.role === "admin"
+                ? "bg-amber-500/20 text-amber-300 border-amber-500/40"
+                : user?.role === "teacher"
+                ? "bg-purple-500/20 text-purple-300 border-purple-500/40"
+                : "bg-cyan-500/20 text-cyan-300 border-cyan-500/40"
+            }`}
+          >
+            {user?.role || "GUEST"}
+          </span>
         </div>
       ) : (
         <div className="py-2 flex justify-center">
           <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 uppercase">
-            {user.role[0]}
+            {user?.role?.[0] || "U"}
           </span>
         </div>
       )}
@@ -219,30 +198,32 @@ export default function AppSidebar({
           }`}
         >
           <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-purple-500 to-cyan-400 flex items-center justify-center text-white text-xs font-bold shrink-0">
-            {user.name
-              .split(" ")
-              .map((n) => n[0])
-              .join("")
-              .slice(0, 2)}
+            {user?.name
+              ? user.name
+                  .split(" ")
+                  .map((n) => n[0])
+                  .join("")
+                  .slice(0, 2)
+              : "U"}
           </div>
           {!collapsed && (
             <div className="flex-1 overflow-hidden">
               <p className="text-xs font-semibold text-white truncate">
-                {user.name}
+                {user?.name || "Guest"}
               </p>
               <p className="text-[11px] text-slate-400 truncate capitalize">
-                {user.role}
+                {user?.role || "Not logged in"}
               </p>
             </div>
           )}
-          {!collapsed && (
-            <Link
-              href="/"
-              className="p-1 rounded text-slate-400 hover:text-rose-400 transition-colors"
-              title="Return to Home"
+          {!collapsed && user && (
+            <button
+              onClick={() => logout()}
+              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+              title="Sign Out"
             >
               <LogOut className="w-4 h-4" />
-            </Link>
+            </button>
           )}
         </div>
       </div>

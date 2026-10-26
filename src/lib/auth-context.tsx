@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 export type UserRole = "student" | "teacher" | "admin";
 
@@ -13,97 +14,78 @@ export interface UserProfile {
   enrolledTrack?: string;
 }
 
-export const PRESET_ACCOUNTS: UserProfile[] = [
-  {
-    id: "usr-admin-01",
-    name: "SkillNova Administrator",
-    email: "admin@skillnova.edu",
-    role: "admin",
-    enrolledTrack: "System Infrastructure & Security",
-  },
-  {
-    id: "usr-student-soniya",
-    name: "Soniya Chauhan",
-    email: "soniya.chauhan@skillnova.edu",
-    role: "student",
-    enrolledTrack: "MCA Python Programming",
-  },
-  {
-    id: "usr-student-mohit",
-    name: "Mohit",
-    email: "mohit@skillnova.edu",
-    role: "student",
-    enrolledTrack: "MCA Python Programming",
-  },
-  {
-    id: "tch-201",
-    name: "Dr. Aryan Mehta",
-    email: "aryan.mehta@skillnova.edu",
-    role: "teacher",
-    enrolledTrack: "MCA Python & AI Faculty",
-  },
-];
-
 interface AuthContextType {
-  user: UserProfile;
-  setRole: (role: UserRole) => void;
-  setUser: (user: UserProfile) => void;
-  switchAccount: (email: string) => void;
-  logout: () => void;
+  user: UserProfile | null;
+  loading: boolean;
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  logout: () => Promise<void>;
+  refreshSession: () => Promise<void>;
 }
 
-const defaultUser: UserProfile = PRESET_ACCOUNTS[0]; // Administrator
-
 const AuthContext = createContext<AuthContextType>({
-  user: defaultUser,
-  setRole: () => {},
-  setUser: () => {},
-  switchAccount: () => {},
-  logout: () => {},
+  user: null,
+  loading: true,
+  login: async () => ({ success: false }),
+  logout: async () => {},
+  refreshSession: async () => {},
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUserState] = useState<UserProfile>(defaultUser);
+  const [user, setUser] = useState<UserProfile | null>(null);
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
+
+  const refreshSession = async () => {
+    try {
+      const res = await fetch("/api/auth/me");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.authenticated && data.user) {
+          setUser(data.user);
+          return;
+        }
+      }
+      setUser(null);
+    } catch {
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem("skillnova_current_user");
-      if (saved) {
-        setUserState(JSON.parse(saved));
-      }
-    } catch {}
+    refreshSession();
   }, []);
 
-  const setUser = (newUser: UserProfile) => {
-    setUserState(newUser);
+  const login = async (email: string, password: string) => {
     try {
-      localStorage.setItem("skillnova_current_user", JSON.stringify(newUser));
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success && data.user) {
+        setUser(data.user);
+        return { success: true };
+      }
+      return { success: false, error: data.error || "Authentication failed." };
+    } catch (e: any) {
+      return { success: false, error: e.message || "Network error during login." };
+    }
+  };
+
+  const logout = async () => {
+    try {
+      await fetch("/api/auth/login", { method: "DELETE" });
     } catch {}
-  };
-
-  const switchAccount = (email: string) => {
-    const target = PRESET_ACCOUNTS.find((a) => a.email === email);
-    if (target) {
-      setUser(target);
-    }
-  };
-
-  const setRole = (role: UserRole) => {
-    if (role === "admin") {
-      setUser(PRESET_ACCOUNTS[0]);
-    } else if (role === "teacher") {
-      setUser(PRESET_ACCOUNTS[3]);
-    } else {
-      setUser(PRESET_ACCOUNTS[1]); // Soniya by default for student
-    }
-  };
-
-  const logout = () => {
-    setUser(defaultUser);
+    setUser(null);
+    router.push("/login");
   };
 
   return (
-    <AuthContext.Provider value={{ user, setRole, setUser, switchAccount, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, refreshSession }}>
       {children}
     </AuthContext.Provider>
   );
