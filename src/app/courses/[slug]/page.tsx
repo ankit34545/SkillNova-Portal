@@ -244,19 +244,27 @@ export default function CourseDetailPage() {
               </div>
 
               {/* Enrollment CTA */}
-              <div className="pt-2 flex items-center gap-3">
+              <div className="pt-2 flex flex-wrap items-center gap-3">
                 {course.isEnrolled ? (
-                  <div className="flex items-center gap-3">
+                  <div className="flex flex-wrap items-center gap-3">
                     <div className="px-4 py-2.5 rounded-xl text-xs font-semibold bg-emerald-500/10 text-emerald-300 border border-emerald-500/30 flex items-center gap-2">
                       <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                       <span>Enrolled in this Course</span>
                     </div>
+                    {course.modules?.[0]?.lessons?.[0] && (
+                      <Link
+                        href={`/courses/${slug}/lessons/${course.modules[0].lessons[0].id}`}
+                        className="px-5 py-2.5 rounded-xl font-semibold text-xs text-white bg-gradient-to-r from-purple-600 to-cyan-500 hover:from-purple-500 hover:to-cyan-400 shadow-glow-violet transition-all flex items-center gap-1.5"
+                      >
+                        <span>Start Learning</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </Link>
+                    )}
                     <Link
                       href="/dashboard"
-                      className="px-5 py-2.5 rounded-xl font-semibold text-xs text-white bg-white/10 hover:bg-white/15 border border-white/10 transition-colors flex items-center gap-1.5"
+                      className="px-4 py-2.5 rounded-xl font-semibold text-xs text-slate-300 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 transition-colors flex items-center gap-1.5"
                     >
-                      <span>Go to Student Dashboard</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
+                      <span>Dashboard</span>
                     </Link>
                   </div>
                 ) : (
@@ -373,10 +381,25 @@ export default function CourseDetailPage() {
                                     </p>
                                   )}
                                 </div>
-                                <span className="text-[11px] text-slate-500 font-mono shrink-0 flex items-center gap-1 sm:pl-4">
-                                  <Clock className="w-3 h-3" />
-                                  <span>{lesson.durationMinutes} min</span>
-                                </span>
+                                <div className="flex items-center gap-3 shrink-0 sm:pl-4">
+                                  <span className="text-[11px] text-slate-500 font-mono flex items-center gap-1">
+                                    <Clock className="w-3 h-3" />
+                                    <span>{lesson.durationMinutes} min</span>
+                                  </span>
+                                  {course.isEnrolled ? (
+                                    <Link
+                                      href={`/courses/${slug}/lessons/${lesson.id}`}
+                                      className="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-white/10 hover:bg-cyan-500/20 text-white hover:text-cyan-300 transition-colors flex items-center gap-1"
+                                    >
+                                      <span>Start</span>
+                                      <ArrowRight className="w-3 h-3" />
+                                    </Link>
+                                  ) : (
+                                    <span className="text-[10px] text-slate-600 font-medium px-2 py-0.5 rounded bg-white/[0.02]">
+                                      Enroll to access
+                                    </span>
+                                  )}
+                                </div>
                               </div>
                             ))}
                           </div>

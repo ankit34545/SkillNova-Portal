@@ -19,6 +19,7 @@ import {
   ClipboardCheck,
   Check,
   Download,
+  BookOpen,
 } from "lucide-react";
 import AppShell from "@/components/layout/AppShell";
 import Button from "@/components/ui/Button";
@@ -28,7 +29,7 @@ import { useRouter } from "next/navigation";
 export default function TeacherWorkspacePage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<"classes" | "assignments" | "doubts" | "materials">("classes");
+  const [activeTab, setActiveTab] = useState<"courses" | "classes" | "assignments" | "doubts" | "materials">("courses");
   const [cohortData, setCohortData] = useState<any>(null);
   const [teacherAnalytics, setTeacherAnalytics] = useState<any>(null);
   const [assignments, setAssignments] = useState<any[]>([]);
@@ -50,6 +51,8 @@ export default function TeacherWorkspacePage() {
   const [gradingSubmitting, setGradingSubmitting] = useState(false);
   const [gradingError, setGradingError] = useState<string | null>(null);
 
+  const [teacherCourses, setTeacherCourses] = useState<any[]>([]);
+
   const fetchAssignments = async () => {
     if (!user) return;
     try {
@@ -61,6 +64,19 @@ export default function TeacherWorkspacePage() {
         setAssignments(data.assignments || []);
       }
     } catch {}
+  };
+
+  const fetchTeacherCourses = async () => {
+    if (!user) return;
+    try {
+      const res = await fetch("/api/teacher/courses");
+      if (res.ok) {
+        const data = await res.json();
+        setTeacherCourses(data.courses || []);
+      }
+    } catch (e) {
+      console.error("Teacher courses error:", e);
+    }
   };
 
   useEffect(() => {
@@ -87,7 +103,7 @@ export default function TeacherWorkspacePage() {
           const aData = await analyticsRes.json();
           setTeacherAnalytics(aData);
         }
-        await fetchAssignments();
+        await Promise.all([fetchAssignments(), fetchTeacherCourses()]);
       } catch {} finally {
         setLoading(false);
       }
@@ -300,6 +316,7 @@ export default function TeacherWorkspacePage() {
         {/* Action Tabs */}
         <div className="flex items-center gap-2 border-b border-white/10 pb-3 overflow-x-auto">
           {[
+            { id: "courses", label: `Assigned Courses (${teacherCourses.length})`, icon: BookOpen },
             { id: "classes", label: "Upcoming Cohort Sessions", icon: Calendar },
             { id: "assignments", label: `Assignments & Grading (${assignments.length})`, icon: ClipboardCheck },
             { id: "doubts", label: "Student Doubt Queue (2)", icon: HelpCircle },
@@ -323,6 +340,96 @@ export default function TeacherWorkspacePage() {
             );
           })}
         </div>
+
+        {/* Tab: Assigned Courses & Boundaries */}
+        {activeTab === "courses" && (
+          <div className="p-6 rounded-3xl bg-midnight-900 border border-white/10 space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <BookOpen className="w-4 h-4 text-purple-400" />
+                  <span>Your Assigned Curricula & Student Rosters</span>
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  You have access strictly to course data, student enrollments, and submissions for curricula assigned to your instructor profile.
+                </p>
+              </div>
+              <span className="text-xs font-mono px-3 py-1 rounded bg-purple-500/10 text-purple-300 border border-purple-500/30 self-start sm:self-auto">
+                {teacherCourses.length} Assigned Courses
+              </span>
+            </div>
+
+            {teacherCourses.length === 0 ? (
+              <div className="p-8 rounded-2xl bg-white/[0.02] border border-white/5 text-center space-y-2">
+                <BookOpen className="w-6 h-6 text-slate-500 mx-auto" />
+                <p className="text-xs text-slate-400">No courses assigned to your instructor profile yet.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {teacherCourses.map((c) => (
+                  <div
+                    key={c.id}
+                    className="p-5 rounded-2xl bg-white/[0.02] border border-white/5 hover:border-purple-500/20 transition-all space-y-4"
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-sm font-bold text-white">{c.title}</h4>
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-300 border border-cyan-500/20">
+                            {c.level}
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-400 mt-1 line-clamp-1">{c.description}</p>
+                      </div>
+
+                      <div className="flex items-center gap-2 self-start sm:self-auto">
+                        <Link
+                          href={`/courses/${c.slug}`}
+                          className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-white/10 hover:bg-white/15 text-white transition-colors flex items-center gap-1"
+                        >
+                          <span>Curriculum</span>
+                          <ArrowRight className="w-3 h-3" />
+                        </Link>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-4 text-xs text-slate-400 pt-2 border-t border-white/5">
+                      <span>{c.moduleCount} Modules</span>
+                      <span>•</span>
+                      <span>{c.lessonCount} Lessons</span>
+                      <span>•</span>
+                      <span className="text-purple-400 font-semibold">{c.enrolledStudentsCount} Enrolled Students</span>
+                    </div>
+
+                    {c.students && c.students.length > 0 && (
+                      <div className="pt-2">
+                        <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2">
+                          Verified Enrolled Students:
+                        </p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                          {c.students.map((st: any) => (
+                            <div
+                              key={st.userId}
+                              className="p-2.5 rounded-xl bg-black/30 border border-white/5 flex items-center justify-between"
+                            >
+                              <div className="truncate pr-2">
+                                <p className="text-xs font-medium text-white truncate">{st.name}</p>
+                                <p className="text-[10px] text-slate-400 truncate">{st.email}</p>
+                              </div>
+                              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-300 shrink-0">
+                                {st.progressPercent}%
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Tab 1: Cohort Sessions */}
         {activeTab === "classes" && (

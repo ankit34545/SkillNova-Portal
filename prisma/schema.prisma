@@ -76,6 +76,7 @@ model User {
   notifications Notification[]
   taughtCourses Course[]       @relation("CourseInstructor")
   enrollments   CourseEnrollment[]
+  lessonProgress LessonProgress[]
 
   @@index([email])
 }
@@ -412,16 +413,17 @@ model CourseModule {
 }
 
 model CourseLesson {
-  id              String       @id @default(uuid())
+  id              String         @id @default(uuid())
   moduleId        String
   title           String
-  durationMinutes Int          @default(30)
-  orderIndex      Int          @default(0)
+  durationMinutes Int            @default(30)
+  orderIndex      Int            @default(0)
   content         String?
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
 
-  module          CourseModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  module          CourseModule   @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  progressRecords LessonProgress[]
 
   @@index([moduleId])
   @@index([orderIndex])
@@ -441,4 +443,22 @@ model CourseEnrollment {
   @@unique([courseId, userId])
   @@index([courseId])
   @@index([userId])
+}
+
+model LessonProgress {
+  id          String       @id @default(uuid())
+  lessonId    String
+  userId      String
+  isCompleted Boolean      @default(true)
+  completedAt DateTime?    @default(now())
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  lesson      CourseLesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([lessonId, userId])
+  @@index([lessonId])
+  @@index([userId])
+  @@index([isCompleted])
 }
