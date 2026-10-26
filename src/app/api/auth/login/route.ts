@@ -70,11 +70,23 @@ export async function POST(req: NextRequest) {
   } catch (error: any) {
     const errorMsg = error?.message || String(error);
     const errorCode = error?.code || "UNKNOWN";
-    console.error("[/api/auth/login] Authentication failure:", {
+    const errorName = error?.name || "Error";
+
+    // Distinguish database connection/initialization failures vs other runtime issues
+    const isDbError =
+      errorName.includes("PrismaClient") ||
+      errorCode.startsWith("P1") ||
+      errorCode.startsWith("P2");
+
+    console.error("[/api/auth/login] Diagnostic failure:", {
+      type: isDbError ? "DATABASE_ERROR" : "RUNTIME_ERROR",
+      name: errorName,
       code: errorCode,
       message: errorMsg,
-      name: error?.name,
+      hasAuthSecret: Boolean(process.env.AUTH_SECRET),
+      hasDbUrl: Boolean(process.env.DATABASE_URL),
     });
+
     return NextResponse.json(
       { error: "Internal server error during authentication." },
       { status: 500 }
