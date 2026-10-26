@@ -48,6 +48,7 @@ export default function StudentDashboardPage() {
   const [submissionStatusMessage, setSubmissionStatusMessage] = useState<string | null>(null);
 
   const [analyticsData, setAnalyticsData] = useState<any>(null);
+  const [studentCourses, setStudentCourses] = useState<any[]>([]);
 
   const fetchAssignments = async () => {
     try {
@@ -58,6 +59,18 @@ export default function StudentDashboardPage() {
       }
     } catch (e) {
       console.error("Assignments fetch error:", e);
+    }
+  };
+
+  const fetchStudentCourses = async () => {
+    try {
+      const res = await fetch("/api/student/courses");
+      if (res.ok) {
+        const data = await res.json();
+        setStudentCourses(data.courses || []);
+      }
+    } catch (e) {
+      console.error("Student courses fetch error:", e);
     }
   };
 
@@ -87,7 +100,7 @@ export default function StudentDashboardPage() {
           const data = await res.json();
           setDashboardData(data);
         }
-        await Promise.all([fetchAssignments(), fetchAnalytics()]);
+        await Promise.all([fetchAssignments(), fetchAnalytics(), fetchStudentCourses()]);
       } catch (e) {
         console.error("Dashboard fetch error:", e);
       } finally {
@@ -292,7 +305,7 @@ export default function StudentDashboardPage() {
             <div>
               <p className="text-xs text-slate-400">Enrolled Curricula</p>
               <p className="text-xl font-bold text-white mt-1">
-                {analyticsData?.metrics?.enrolledCoursesCount ?? enrolledTracks.length} Tracks
+                {studentCourses.length} Courses
               </p>
             </div>
             <div>
@@ -371,54 +384,71 @@ export default function StudentDashboardPage() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {enrolledTracks.map((track) => (
-                  <div
-                    key={track.id}
-                    className="p-5 rounded-2xl bg-midnight-900 border border-white/10 hover:border-purple-500/30 transition-all flex flex-col justify-between"
-                  >
-                    <div>
-                      <div className="flex items-center justify-between text-xs mb-3">
-                        <span className="text-slate-400">{track.mentor}</span>
-                        <span className="font-semibold text-cyan-400">
-                          {track.progress}%
-                        </span>
-                      </div>
-
-                      <h3 className="font-bold text-white text-base leading-snug">
-                        {track.title}
-                      </h3>
-
-                      {/* Progress Bar */}
-                      <div className="w-full h-2 rounded-full bg-white/10 mt-4 overflow-hidden">
-                        <div
-                          className={`h-full bg-gradient-to-r ${track.gradient} rounded-full`}
-                          style={{ width: `${track.progress}%` }}
-                        />
-                      </div>
-
-                      <div className="mt-4 p-3 rounded-xl bg-white/[0.02] border border-white/5">
-                        <p className="text-[11px] text-slate-400">Up Next:</p>
-                        <p className="text-xs font-medium text-slate-200 mt-0.5 truncate">
-                          {track.nextLesson}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="mt-6 pt-4 border-t border-white/5 flex items-center justify-between">
-                      <span className="text-[11px] text-slate-400">
-                        {track.completedModules}/{track.totalModules} Units
-                      </span>
-
-                      <Link
-                        href={`/meet/${track.roomId}`}
-                        className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white/10 hover:bg-cyan-500/20 text-white hover:text-cyan-300 transition-colors flex items-center gap-1"
-                      >
-                        <span>Open Class</span>
-                        <ArrowRight className="w-3.5 h-3.5" />
-                      </Link>
-                    </div>
+                {studentCourses.length === 0 ? (
+                  <div className="col-span-full p-8 rounded-2xl bg-midnight-900 border border-white/10 text-center space-y-3">
+                    <BookOpen className="w-8 h-8 text-purple-400 mx-auto" />
+                    <h3 className="text-base font-semibold text-white">No Enrolled Courses Yet</h3>
+                    <p className="text-xs text-slate-400 max-w-md mx-auto">
+                      Explore our core engineering curricula in Python, Java, C++, and Web Development to begin your verified coursework.
+                    </p>
+                    <Link
+                      href="/courses"
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-gradient-to-r from-purple-600 to-cyan-500 text-white"
+                    >
+                      <span>Browse Course Catalogue</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </Link>
                   </div>
-                ))}
+                ) : (
+                  studentCourses.map((course) => (
+                    <div
+                      key={course.courseId}
+                      className="p-5 rounded-2xl bg-midnight-900 border border-white/10 hover:border-purple-500/30 transition-all flex flex-col justify-between"
+                    >
+                      <div>
+                        <div className="flex items-center justify-between text-xs mb-3">
+                          <span className="text-slate-400 truncate max-w-[140px]">{course.instructor}</span>
+                          <span className="font-semibold text-cyan-400">
+                            {course.progressPercent}%
+                          </span>
+                        </div>
+
+                        <h3 className="font-bold text-white text-base leading-snug">
+                          {course.title}
+                        </h3>
+
+                        {/* Progress Bar */}
+                        <div className="w-full h-2 rounded-full bg-white/10 mt-4 overflow-hidden">
+                          <div
+                            className="h-full bg-gradient-to-r from-purple-500 to-cyan-500 rounded-full"
+                            style={{ width: `${Math.max(course.progressPercent, 5)}%` }}
+                          />
+                        </div>
+
+                        <div className="mt-4 p-3 rounded-xl bg-white/[0.02] border border-white/5">
+                          <p className="text-[11px] text-slate-400">Syllabus Overview:</p>
+                          <p className="text-xs font-medium text-slate-200 mt-0.5 truncate">
+                            {course.modules?.[0]?.title || "Core Technical Curriculum"}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="mt-6 pt-4 border-t border-white/5 flex items-center justify-between">
+                        <span className="text-[11px] text-slate-400">
+                          {course.totalModules} Modules • {course.totalLessons} Lessons
+                        </span>
+
+                        <Link
+                          href={`/courses/${course.slug}`}
+                          className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white/10 hover:bg-cyan-500/20 text-white hover:text-cyan-300 transition-colors flex items-center gap-1"
+                        >
+                          <span>Open Course</span>
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </Link>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
 

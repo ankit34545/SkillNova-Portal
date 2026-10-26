@@ -74,6 +74,8 @@ model User {
   createdAssignments Assignment[] @relation("AssignmentTeacher")
   submissions   Submission[]
   notifications Notification[]
+  taughtCourses Course[]       @relation("CourseInstructor")
+  enrollments   CourseEnrollment[]
 
   @@index([email])
 }
@@ -369,4 +371,74 @@ model Notification {
   @@index([userId])
   @@index([isRead])
   @@index([type])
+}
+
+model Course {
+  id            String             @id @default(uuid())
+  slug          String             @unique
+  title         String
+  description   String
+  level         String             @default("Beginner")
+  durationWeeks Int                @default(8)
+  category      String             @default("Computer Science")
+  isPublished   Boolean            @default(true)
+  instructorId  String?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  instructor    User?              @relation("CourseInstructor", fields: [instructorId], references: [id], onDelete: SetNull)
+  modules       CourseModule[]
+  enrollments   CourseEnrollment[]
+
+  @@index([slug])
+  @@index([isPublished])
+  @@index([instructorId])
+}
+
+model CourseModule {
+  id          String         @id @default(uuid())
+  courseId    String
+  title       String
+  description String?
+  orderIndex  Int            @default(0)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  course      Course         @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessons     CourseLesson[]
+
+  @@index([courseId])
+  @@index([orderIndex])
+}
+
+model CourseLesson {
+  id              String       @id @default(uuid())
+  moduleId        String
+  title           String
+  durationMinutes Int          @default(30)
+  orderIndex      Int          @default(0)
+  content         String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  module          CourseModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+
+  @@index([moduleId])
+  @@index([orderIndex])
+}
+
+model CourseEnrollment {
+  id              String    @id @default(uuid())
+  courseId        String
+  userId          String
+  progressPercent Int       @default(0)
+  enrolledAt      DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  course          Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([courseId, userId])
+  @@index([courseId])
+  @@index([userId])
 }

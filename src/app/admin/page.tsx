@@ -30,6 +30,42 @@ export default function AdminDashboardPage() {
   const [userCount, setUserCount] = useState<number>(0);
   const [roomCount, setRoomCount] = useState<number>(0);
   const [loading, setLoading] = useState(true);
+  const [adminCourses, setAdminCourses] = useState<any[]>([]);
+  const [togglingCourseId, setTogglingCourseId] = useState<string | null>(null);
+
+  const fetchAdminCourses = async () => {
+    try {
+      const res = await fetch("/api/admin/courses");
+      if (res.ok) {
+        const data = await res.json();
+        setAdminCourses(data.courses || []);
+      }
+    } catch (e) {
+      console.error("Admin courses fetch error:", e);
+    }
+  };
+
+  const handleTogglePublish = async (courseId: string, currentStatus: boolean) => {
+    setTogglingCourseId(courseId);
+    try {
+      const res = await fetch("/api/admin/courses", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "toggle_publish",
+          courseId,
+          isPublished: !currentStatus,
+        }),
+      });
+      if (res.ok) {
+        await fetchAdminCourses();
+      }
+    } catch (e) {
+      console.error("Toggle publish error:", e);
+    } finally {
+      setTogglingCourseId(null);
+    }
+  };
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -51,6 +87,7 @@ export default function AdminDashboardPage() {
         } else {
           setDbStatus("Access Restricted");
         }
+        await fetchAdminCourses();
       } catch {
         setDbStatus("Offline");
       } finally {
@@ -237,6 +274,73 @@ export default function AdminDashboardPage() {
                       {u.role}
                     </span>
                     <span className="text-xs text-emerald-400 font-medium">{u.status}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Tab 3: Curricula Catalog */}
+        {activeTab === "courses" && (
+          <div className="p-6 rounded-3xl bg-midnight-900 border border-white/10 space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-bold text-white">Course Curricula & Enrollment Management</h3>
+                <p className="text-xs text-slate-400">View registered courses, publish states, and total enrolled students.</p>
+              </div>
+              <span className="text-xs font-mono px-2.5 py-1 rounded bg-purple-500/10 text-purple-300 border border-purple-500/30">
+                {adminCourses.length} Courses In Database
+              </span>
+            </div>
+
+            <div className="divide-y divide-white/5">
+              {adminCourses.map((c) => (
+                <div key={c.id} className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-bold text-white">{c.title}</span>
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-300 border border-cyan-500/20">
+                        {c.level}
+                      </span>
+                      <span className={`text-[10px] font-mono px-2 py-0.5 rounded ${
+                        c.isPublished
+                          ? "bg-emerald-500/10 text-emerald-300 border border-emerald-500/20"
+                          : "bg-amber-500/10 text-amber-300 border border-amber-500/20"
+                      }`}>
+                        {c.isPublished ? "PUBLISHED" : "UNPUBLISHED"}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-400 line-clamp-1">{c.description}</p>
+                    <div className="flex items-center gap-3 text-[11px] text-slate-500">
+                      <span>Slug: <code className="text-slate-400">/{c.slug}</code></span>
+                      <span>•</span>
+                      <span>{c.moduleCount} Modules</span>
+                      <span>•</span>
+                      <span>{c.lessonCount} Lessons</span>
+                      <span>•</span>
+                      <span className="text-purple-400">{c.enrollmentCount} Enrolled Students</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      onClick={() => handleTogglePublish(c.id, c.isPublished)}
+                      disabled={togglingCourseId === c.id}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                        c.isPublished
+                          ? "bg-rose-500/10 text-rose-300 hover:bg-rose-500/20 border border-rose-500/20"
+                          : "bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20 border border-emerald-500/20"
+                      }`}
+                    >
+                      {togglingCourseId === c.id ? "Updating..." : c.isPublished ? "Unpublish" : "Publish"}
+                    </button>
+                    <Link
+                      href={`/courses/${c.slug}`}
+                      className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-white/10 hover:bg-white/15 text-white transition-colors"
+                    >
+                      View
+                    </Link>
                   </div>
                 </div>
               ))}
