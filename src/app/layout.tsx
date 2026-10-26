@@ -29,6 +29,8 @@ export const metadata: Metadata = {
   },
 };
 
+import { AuthProvider } from "@/lib/auth-context";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -45,9 +47,11 @@ export default function RootLayout({
           <div className="absolute inset-0 bg-grid-pattern opacity-40 pointer-events-none" />
         </div>
 
-        <div className="relative z-10 flex flex-col min-h-screen">
-          {children}
-        </div>
+        <AuthProvider>
+          <div className="relative z-10 flex flex-col min-h-screen">
+            {children}
+          </div>
+        </AuthProvider>
       </body>
     </html>
   );

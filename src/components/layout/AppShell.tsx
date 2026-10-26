@@ -15,8 +15,7 @@ export default function AppShell({ children, breadcrumbs }: AppShellProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <AuthProvider>
-      <div className="min-h-screen bg-midnight-950 text-slate-100 flex">
+    <div className="min-h-screen bg-midnight-950 text-slate-100 flex">
         {/* Desktop Sidebar */}
         <div className="hidden md:block shrink-0">
           <AppSidebar collapsed={collapsed} setCollapsed={setCollapsed} />
@@ -66,6 +65,5 @@ export default function AppShell({ children, breadcrumbs }: AppShellProps) {
           </main>
         </div>
       </div>
-    </AuthProvider>
   );
 }
