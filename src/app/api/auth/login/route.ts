@@ -22,6 +22,15 @@ export async function POST(req: NextRequest) {
 
     const trimmedEmail = email.trim().toLowerCase();
 
+    // Verify database configuration at runtime
+    if (!process.env.DATABASE_URL) {
+      console.error("[/api/auth/login] Configuration error: DATABASE_URL is not set in the runtime environment.");
+      return NextResponse.json(
+        { error: "Database configuration error. Please contact the administrator." },
+        { status: 503 }
+      );
+    }
+
     // Query user from PostgreSQL
     const user = await prisma.user.findUnique({
       where: { email: trimmedEmail },
