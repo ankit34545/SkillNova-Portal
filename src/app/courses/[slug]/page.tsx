@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import {
@@ -79,7 +79,7 @@ export default function CourseDetailPage() {
     message: string;
   } | null>(null);
 
-  const fetchCourse = async () => {
+  const fetchCourse = useCallback(async () => {
     if (!slug) return;
     try {
       const res = await fetch(`/api/courses/${slug}`);
@@ -99,11 +99,11 @@ export default function CourseDetailPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [slug]);
 
   useEffect(() => {
     fetchCourse();
-  }, [slug, user]);
+  }, [fetchCourse, user]);
 
   const toggleModule = (id: string) => {
     setExpandedModules((prev) => ({ ...prev, [id]: !prev[id] }));
