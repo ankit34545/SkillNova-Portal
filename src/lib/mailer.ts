@@ -64,19 +64,20 @@ export async function sendWelcomeEmail(userEmail: string, userName: string) {
     text: `Hello ${userName}, welcome to SkillNova! Your account is active. Log in at: ${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/login`,
   };
 
-  const client = getTransporter();
-  if (client) {
-    try {
+  try {
+    const client = getTransporter();
+    if (client) {
       await client.sendMail({
         from: `"${fromName}" <${fromEmail}>`,
         ...mailOptions,
       });
-      console.log(`[Mailer] Welcome email sent to ${userEmail}`);
-    } catch (e: any) {
-      console.error(`[Mailer] Failed to send welcome email to ${userEmail}:`, e?.message || e);
+      console.log(`[Mailer] Welcome email sent successfully to ${userEmail.replace(/(.{2})(.*)(?=@)/, "$1***")}`);
+    } else {
+      console.log(`[Mailer:DIAGNOSTIC] Simulated welcome email for ${userEmail.replace(/(.{2})(.*)(?=@)/, "$1***")}`);
     }
-  } else {
-    console.log(`[Mailer:LOG_DISPATCH] Welcome email logged for ${userEmail}:`, mailOptions.subject);
+  } catch (e: any) {
+    // Catch mailer errors gracefully without throwing to caller
+    console.error(`[Mailer:ERROR] Could not dispatch welcome email: ${e?.code || e?.name || "TRANSMISSION_ERROR"}`);
   }
 }
 
@@ -121,19 +122,19 @@ export async function sendAdminNewUserAlert(newUserEmail: string, newUserName: s
     text: `New user created: ${newUserName} (${newUserEmail}), Role: ${role}. Review in Admin Console.`,
   };
 
-  const client = getTransporter();
-  if (client) {
-    try {
+  try {
+    const client = getTransporter();
+    if (client) {
       await client.sendMail({
         from: `"${fromName}" <${fromEmail}>`,
         ...mailOptions,
       });
-      console.log(`[Mailer] Administrator notified at ${adminEmail}`);
-    } catch (e: any) {
-      console.error(`[Mailer] Failed to notify admin at ${adminEmail}:`, e?.message || e);
+      console.log(`[Mailer] Administrator alert dispatched successfully.`);
+    } else {
+      console.log(`[Mailer:DIAGNOSTIC] Simulated admin alert logged: ${mailOptions.subject}`);
     }
-  } else {
-    console.log(`[Mailer:LOG_DISPATCH] Admin alert logged for ${adminEmail}:`, mailOptions.subject);
+  } catch (e: any) {
+    // Safe error reporting - no credentials or personal data printed
+    console.error(`[Mailer:ERROR] Administrator alert dispatch failed: ${e?.code || e?.name || "TRANSMISSION_ERROR"}`);
   }
 }
-
