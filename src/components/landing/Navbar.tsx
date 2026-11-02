@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { Sparkles, Compass, Terminal, Bot, Menu, X, ArrowRight, ShieldCheck, Award, BookOpen, Video, LayoutDashboard } from "lucide-react";
+import { Sparkles, Compass, Terminal, Bot, Menu, X, ArrowRight, ShieldCheck, Award, BookOpen, Video, LayoutDashboard, UserPlus } from "lucide-react";
 
 export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -71,18 +71,17 @@ export default function Navbar() {
         <div className="flex items-center gap-2">
           <Link
             href="/login"
-            className="px-3 py-1.5 rounded-xl text-xs font-semibold text-white bg-white/10 hover:bg-white/20 border border-white/10 transition-colors flex items-center justify-center shrink-0 min-h-[34px]"
+            className="px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-200 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 transition-colors flex items-center justify-center shrink-0 min-h-[34px]"
           >
             Sign In
           </Link>
 
           <Link
-            href="/dashboard"
-            className="hidden sm:inline-flex relative group px-3.5 py-1.5 rounded-xl text-xs font-semibold text-white bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-500 hover:from-purple-500 hover:to-cyan-400 shadow-glow-violet transition-all transform hover:-translate-y-0.5 items-center gap-1.5 shrink-0"
+            href="/signup"
+            className="relative group px-3.5 py-1.5 rounded-xl text-xs font-semibold text-white bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-500 hover:from-purple-500 hover:to-cyan-400 shadow-glow-violet transition-all transform hover:-translate-y-0.5 flex items-center gap-1.5 shrink-0 min-h-[34px]"
           >
-            <LayoutDashboard className="w-3.5 h-3.5" />
-            <span>Dashboard</span>
-            <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+            <UserPlus className="w-3.5 h-3.5" />
+            <span>Sign Up</span>
           </Link>
 
           {/* Mobile menu button */}
@@ -136,11 +135,11 @@ export default function Navbar() {
               Sign In to Your Account
             </Link>
             <Link
-              href="/dashboard"
+              href="/signup"
               onClick={() => setMobileMenuOpen(false)}
-              className="w-full text-center py-2.5 rounded-xl text-xs font-semibold text-white bg-gradient-to-r from-purple-600 to-cyan-500 shadow-glow-violet"
+              className="w-full text-center py-2.5 rounded-xl text-xs font-semibold text-white bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-500 shadow-glow-violet"
             >
-              Launch Dashboard
+              Sign Up (Create Free Account)
             </Link>
           </div>
         </div>
