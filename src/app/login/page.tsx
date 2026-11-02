@@ -134,6 +134,16 @@ export default function LoginPage() {
               <ArrowRight className="w-4 h-4" />
             </button>
           </form>
+
+          {/* Direct link to Signup */}
+          <div className="text-center pt-2 border-t border-white/5">
+            <p className="text-xs text-slate-400">
+              Don&apos;t have an account?{" "}
+              <Link href="/signup" className="text-cyan-400 hover:text-cyan-300 font-semibold underline underline-offset-4">
+                Create Account (Sign Up)
+              </Link>
+            </p>
+          </div>
         </div>
       </div>
     </div>
