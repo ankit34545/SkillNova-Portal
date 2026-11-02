@@ -23,6 +23,7 @@ import {
   UserCheck,
   FolderGit2,
   ClipboardCheck,
+  Code2,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 
@@ -45,6 +46,7 @@ export default function AppSidebar({
 
   const studentNav: NavItem[] = [
     { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+    { label: "CodingLab IDE", href: "/codinglab", icon: Code2, badge: "IDE" },
     { label: "Assignments", href: "/dashboard?tab=assignments", icon: ClipboardCheck },
     { label: "My Courses", href: "/courses", icon: BookOpen, badge: "3" },
     { label: "Live Classes", href: "/classes", icon: Video, badge: "Live" },
@@ -56,6 +58,7 @@ export default function AppSidebar({
 
   const teacherNav: NavItem[] = [
     { label: "Teacher Dashboard", href: "/teacher", icon: LayoutDashboard },
+    { label: "CodingLab Exercises", href: "/codinglab", icon: Code2, badge: "IDE" },
     { label: "Course Assignments", href: "/teacher#assignments", icon: ClipboardCheck },
     { label: "Assigned Courses", href: "/teacher#courses", icon: BookOpen },
     { label: "Teaching Schedule", href: "/teacher#schedule", icon: Calendar },
@@ -65,13 +68,11 @@ export default function AppSidebar({
   ];
 
   const adminNav: NavItem[] = [
-    { label: "Admin Overview", href: "/admin", icon: Shield },
-    { label: "User Directory", href: "/admin#users", icon: Users },
-    { label: "Faculty & Mentors", href: "/admin#faculty", icon: GraduationCap },
-    { label: "Courses & Curricula", href: "/admin#courses", icon: FolderGit2 },
-    { label: "Class Schedules", href: "/admin#sessions", icon: Calendar },
-    { label: "Platform Analytics", href: "/admin#metrics", icon: BarChart3 },
-    { label: "System Settings", href: "/admin#settings", icon: Settings },
+    { label: "Admin Console", href: "/admin", icon: Shield },
+    { label: "CodingLab Sandbox", href: "/codinglab", icon: Code2, badge: "IDE" },
+    { label: "User Directory", href: "/admin", icon: Users },
+    { label: "Courses & Curricula", href: "/admin", icon: FolderGit2 },
+    { label: "System Settings", href: "/admin", icon: Settings },
   ];
 
   const navItems =
