@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { Room, RoomEvent, RemoteParticipant, RemoteTrackPublication, RemoteTrack, Track } from "livekit-client";
 import PreJoinModal from "@/components/meet/PreJoinModal";
 import MeetingToolbar from "@/components/meet/MeetingToolbar";
 import VideoGrid from "@/components/meet/VideoGrid";
@@ -67,8 +68,9 @@ export default function MeetingRoomClient({ roomId }: { roomId: string }) {
     "chat" | "participants" | "doubts" | "notes" | "materials" | "whiteboard" | null
   >(null);
 
-  // Connection and media device states
-  const [connectionState, setConnectionState] = useState<"connected" | "reconnecting" | "disconnected">("connected");
+  // LiveKit WebRTC state & references
+  const roomRef = useRef<Room | null>(null);
+  const [activeSpeakerId, setActiveSpeakerId] = useState<string | undefined>(undefined);
   const [mediaWarning, setMediaWarning] = useState<string | null>(null);
 
   // Classroom Real-time State
@@ -128,7 +130,7 @@ export default function MeetingRoomClient({ roomId }: { roomId: string }) {
     fetchRoom();
   }, [roomId, router]);
 
-  // 2. Fetch classroom data (doubts, notes, materials, whiteboard, polls)
+  // 2. Fetch classroom data (doubts, notes, materials, whiteboard, polls, participants)
   const fetchClassroomData = async () => {
     try {
       const res = await fetch(`/api/meet/${roomId}/classroom`);
@@ -141,6 +143,42 @@ export default function MeetingRoomClient({ roomId }: { roomId: string }) {
         if (data.whiteboard) setWhiteboardPages(data.whiteboard);
         if (data.messages) setMessages(data.messages);
         if (data.polls) setPolls(data.polls);
+
+        // Sync actual live attendance/participants who joined this room
+        if (data.attendance && Array.isArray(data.attendance)) {
+          setParticipants((prev) => {
+            const currentMap = new Map(prev.map((p) => [p.id, p]));
+            const now = new Date().toISOString();
+
+            data.attendance.forEach((att: any) => {
+              const attId = att.userId || att.participantId || att.id;
+              if (!attId) return;
+
+              const existing = currentMap.get(attId);
+              if (existing) {
+                currentMap.set(attId, {
+                  ...existing,
+                  name: att.userName || att.participantName || existing.name,
+                  role: (att.role?.toLowerCase() || existing.role) as ParticipantRole,
+                });
+              } else {
+                currentMap.set(attId, {
+                  id: attId,
+                  name: att.userName || att.participantName || "Student",
+                  role: (att.role?.toLowerCase() || "student") as ParticipantRole,
+                  audioEnabled: true,
+                  videoEnabled: true,
+                  handRaised: false,
+                  isScreenSharing: false,
+                  joinedAt: att.joinedAt || now,
+                  connectionQuality: "excellent",
+                });
+              }
+            });
+
+            return Array.from(currentMap.values());
+          });
+        }
       } else if (res.status === 410) {
         triggerToast("This classroom meeting has ended.");
         setTimeout(() => router.push("/meet"), 2500);
@@ -185,6 +223,26 @@ export default function MeetingRoomClient({ roomId }: { roomId: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [joined, roomId]);
 
+  useEffect(() => {
+    return () => {
+      if (roomRef.current) {
+        console.log("[SkillNova WebRTC] Unmounting MeetingRoomClient, disconnecting LiveKit room...");
+        try {
+          roomRef.current.disconnect();
+        } catch (e) {
+          console.warn(e);
+        }
+        roomRef.current = null;
+      }
+      if (localStream) {
+        localStream.getTracks().forEach((t) => t.stop());
+      }
+      if (screenStream) {
+        screenStream.getTracks().forEach((t) => t.stop());
+      }
+    };
+  }, [localStream, screenStream]);
+
   // 3. User joins from PreJoinModal
   const handlePreJoinConfirm = async (settings: {
     displayName: string;
@@ -203,6 +261,7 @@ export default function MeetingRoomClient({ roomId }: { roomId: string }) {
     setIsMuted(!settings.micEnabled);
 
     // Acquire real browser camera & mic media stream
+    let acquiredStream: MediaStream | null = null;
     try {
       if (navigator.mediaDevices?.getUserMedia) {
         const stream = await navigator.mediaDevices.getUserMedia({
@@ -218,6 +277,7 @@ export default function MeetingRoomClient({ roomId }: { roomId: string }) {
             : false,
         });
 
+        acquiredStream = stream;
         setLocalStream(stream);
         setMediaWarning(null);
       }
@@ -235,6 +295,10 @@ export default function MeetingRoomClient({ roomId }: { roomId: string }) {
     }
 
     // Call join API to register attendance and receive LiveKit access token
+    let liveKitToken: string | null = null;
+    let liveKitServerUrl: string | null = null;
+    let participantId = localUser.id;
+
     try {
       const savedUserStr = localStorage.getItem(`meet_user_${roomId}`);
       let hostKey: string | undefined = undefined;
@@ -256,17 +320,159 @@ export default function MeetingRoomClient({ roomId }: { roomId: string }) {
         }),
       });
       const data = await res.json();
+      if (data.participantId) {
+        participantId = data.participantId;
+        setLocalUser((prev) => ({ ...prev, id: participantId }));
+      }
       if (data.token) {
-        triggerToast("LiveKit WebRTC Channel connected.");
+        liveKitToken = data.token;
+        liveKitServerUrl = data.livekitUrl || process.env.NEXT_PUBLIC_LIVEKIT_URL || "wss://demo.livekit.cloud";
+        console.log(`[SkillNova WebRTC] Token received for participant ${participantId} in room ${roomId}`);
+        triggerToast("Connecting to live video & audio network...");
       }
     } catch (err) {
       console.warn("Join registration error:", err);
     }
 
-    // Populate cohort participants list
+    // Connect to LiveKit Room and publish media tracks
+    if (liveKitToken && liveKitServerUrl) {
+      try {
+        console.log(`[SkillNova WebRTC] Connecting to room ${roomId} at ${liveKitServerUrl}`);
+        const room = new Room({
+          adaptiveStream: true,
+          dynacast: true,
+        });
+
+        // Track subscriptions
+        room.on(RoomEvent.TrackSubscribed, (track: RemoteTrack, publication: RemoteTrackPublication, participant: RemoteParticipant) => {
+          console.log(`[SkillNova WebRTC] TrackSubscribed: kind=${track.kind}, from participant=${participant.identity} (${participant.name})`);
+          setParticipants((prev) => {
+            return prev.map((p) => {
+              if (p.id === participant.identity) {
+                return {
+                  ...p,
+                  videoTrack: track.kind === Track.Kind.Video ? track.mediaStreamTrack : p.videoTrack,
+                  audioTrack: track.kind === Track.Kind.Audio ? track.mediaStreamTrack : p.audioTrack,
+                  videoEnabled: track.kind === Track.Kind.Video ? !publication.isMuted : p.videoEnabled,
+                  audioEnabled: track.kind === Track.Kind.Audio ? !publication.isMuted : p.audioEnabled,
+                };
+              }
+              return p;
+            });
+          });
+        });
+
+        room.on(RoomEvent.TrackUnsubscribed, (track: RemoteTrack, publication: RemoteTrackPublication, participant: RemoteParticipant) => {
+          console.log(`[SkillNova WebRTC] TrackUnsubscribed: kind=${track.kind}, from participant=${participant.identity}`);
+          setParticipants((prev) => {
+            return prev.map((p) => {
+              if (p.id === participant.identity) {
+                return {
+                  ...p,
+                  videoTrack: track.kind === Track.Kind.Video ? null : p.videoTrack,
+                  audioTrack: track.kind === Track.Kind.Audio ? null : p.audioTrack,
+                };
+              }
+              return p;
+            });
+          });
+        });
+
+        room.on(RoomEvent.TrackMuted, (publication: RemoteTrackPublication, participant: RemoteParticipant) => {
+          console.log(`[SkillNova WebRTC] TrackMuted: kind=${publication.kind}, participant=${participant.identity}`);
+          setParticipants((prev) => {
+            return prev.map((p) => {
+              if (p.id === participant.identity) {
+                return {
+                  ...p,
+                  videoEnabled: publication.kind === Track.Kind.Video ? false : p.videoEnabled,
+                  audioEnabled: publication.kind === Track.Kind.Audio ? false : p.audioEnabled,
+                };
+              }
+              return p;
+            });
+          });
+        });
+
+        room.on(RoomEvent.TrackUnmuted, (publication: RemoteTrackPublication, participant: RemoteParticipant) => {
+          console.log(`[SkillNova WebRTC] TrackUnmuted: kind=${publication.kind}, participant=${participant.identity}`);
+          setParticipants((prev) => {
+            return prev.map((p) => {
+              if (p.id === participant.identity) {
+                return {
+                  ...p,
+                  videoEnabled: publication.kind === Track.Kind.Video ? true : p.videoEnabled,
+                  audioEnabled: publication.kind === Track.Kind.Audio ? true : p.audioEnabled,
+                };
+              }
+              return p;
+            });
+          });
+        });
+
+        room.on(RoomEvent.ParticipantConnected, (participant: RemoteParticipant) => {
+          console.log(`[SkillNova WebRTC] ParticipantConnected: identity=${participant.identity}, name=${participant.name}`);
+          setParticipants((prev) => {
+            if (prev.some((p) => p.id === participant.identity)) return prev;
+            return [
+              ...prev,
+              {
+                id: participant.identity,
+                name: participant.name || "Student",
+                role: "student",
+                audioEnabled: true,
+                videoEnabled: true,
+                handRaised: false,
+                isScreenSharing: false,
+                joinedAt: new Date().toISOString(),
+                connectionQuality: "excellent",
+              },
+            ];
+          });
+        });
+
+        room.on(RoomEvent.ParticipantDisconnected, (participant: RemoteParticipant) => {
+          console.log(`[SkillNova WebRTC] ParticipantDisconnected: identity=${participant.identity}`);
+          setParticipants((prev) => prev.filter((p) => p.id !== participant.identity));
+        });
+
+        room.on(RoomEvent.ActiveSpeakersChanged, (speakers) => {
+          if (speakers.length > 0) {
+            setActiveSpeakerId(speakers[0].identity);
+          } else {
+            setActiveSpeakerId(undefined);
+          }
+        });
+
+        await room.connect(liveKitServerUrl, liveKitToken);
+        console.log(`[SkillNova WebRTC] Successfully connected to room ${room.name}!`);
+        roomRef.current = room;
+
+        // Publish local camera and mic tracks if enabled
+        if (acquiredStream) {
+          const videoTrack = acquiredStream.getVideoTracks()[0];
+          if (videoTrack && settings.cameraEnabled) {
+            console.log("[SkillNova WebRTC] Publishing local video track...");
+            await room.localParticipant.publishTrack(videoTrack, { name: "camera" });
+          }
+
+          const audioTrack = acquiredStream.getAudioTracks()[0];
+          if (audioTrack && settings.micEnabled) {
+            console.log("[SkillNova WebRTC] Publishing local audio track...");
+            await room.localParticipant.publishTrack(audioTrack, { name: "microphone" });
+          }
+        }
+
+        triggerToast("Live video & audio broadcast active.");
+      } catch (lkErr) {
+        console.warn("[SkillNova WebRTC] LiveKit connection warning:", lkErr);
+      }
+    }
+
+    // Initialize local participant
     setParticipants([
       {
-        id: localUser.id,
+        id: participantId,
         name: settings.displayName,
         role: settings.role,
         audioEnabled: settings.micEnabled,
@@ -276,56 +482,56 @@ export default function MeetingRoomClient({ roomId }: { roomId: string }) {
         joinedAt: new Date().toISOString(),
         connectionQuality: "excellent",
       },
-      {
-        id: "peer-aryan",
-        name: "Dr. Aryan Mehta",
-        role: "teacher",
-        audioEnabled: true,
-        videoEnabled: true,
-        handRaised: false,
-        isScreenSharing: false,
-        joinedAt: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
-        connectionQuality: "excellent",
-      },
-      {
-        id: "peer-priya",
-        name: "Priya Sharma",
-        role: "student",
-        audioEnabled: false,
-        videoEnabled: true,
-        handRaised: false,
-        isScreenSharing: false,
-        joinedAt: new Date(Date.now() - 1000 * 60 * 8).toISOString(),
-        connectionQuality: "good",
-      },
     ]);
 
     setJoined(true);
+    // Immediately fetch classroom attendance & peers
+    setTimeout(() => {
+      fetchClassroomData();
+    }, 500);
   };
 
   // 4. Toggle Microphone
-  const handleToggleMute = () => {
+  const handleToggleMute = async () => {
+    const nextMuted = !isMuted;
+    setIsMuted(nextMuted);
+
     if (localStream) {
       const audioTrack = localStream.getAudioTracks()[0];
       if (audioTrack) {
-        audioTrack.enabled = !audioTrack.enabled;
-        setIsMuted(!audioTrack.enabled);
+        audioTrack.enabled = !nextMuted;
       }
-    } else {
-      setIsMuted(!isMuted);
+    }
+
+    if (roomRef.current?.localParticipant) {
+      try {
+        await roomRef.current.localParticipant.setMicrophoneEnabled(!nextMuted);
+        console.log(`[SkillNova WebRTC] Local microphone set to: ${!nextMuted}`);
+      } catch (e) {
+        console.warn("[SkillNova WebRTC] Error setting microphone:", e);
+      }
     }
   };
 
   // 5. Toggle Camera
-  const handleToggleVideo = () => {
+  const handleToggleVideo = async () => {
+    const nextVideoOff = !isVideoOff;
+    setIsVideoOff(nextVideoOff);
+
     if (localStream) {
       const videoTrack = localStream.getVideoTracks()[0];
       if (videoTrack) {
-        videoTrack.enabled = !videoTrack.enabled;
-        setIsVideoOff(!videoTrack.enabled);
+        videoTrack.enabled = !nextVideoOff;
       }
-    } else {
-      setIsVideoOff(!isVideoOff);
+    }
+
+    if (roomRef.current?.localParticipant) {
+      try {
+        await roomRef.current.localParticipant.setCameraEnabled(!nextVideoOff);
+        console.log(`[SkillNova WebRTC] Local camera set to: ${!nextVideoOff}`);
+      } catch (e) {
+        console.warn("[SkillNova WebRTC] Error setting camera:", e);
+      }
     }
   };
 
@@ -603,6 +809,15 @@ export default function MeetingRoomClient({ roomId }: { roomId: string }) {
   };
 
   const handleLeaveMeeting = () => {
+    if (roomRef.current) {
+      console.log("[SkillNova WebRTC] Leaving room and disconnecting LiveKit session...");
+      try {
+        roomRef.current.disconnect();
+      } catch (e) {
+        console.warn("LiveKit disconnect error:", e);
+      }
+      roomRef.current = null;
+    }
     if (localStream) {
       localStream.getTracks().forEach((t) => t.stop());
     }
@@ -740,7 +955,7 @@ export default function MeetingRoomClient({ roomId }: { roomId: string }) {
               localRole={localUser.role}
               isMuted={isMuted}
               isVideoOff={isVideoOff}
-              activeSpeakerId="peer-aryan"
+              activeSpeakerId={activeSpeakerId}
             />
           )}
         </div>

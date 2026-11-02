@@ -54,6 +54,8 @@ export interface Participant {
   joinedAt: string;
   connectionQuality: "excellent" | "good" | "poor" | "unknown";
   isMutedByHost?: boolean;
+  videoTrack?: any; // MediaStreamTrack | null for remote live video feed
+  audioTrack?: any; // MediaStreamTrack | null for remote live audio feed
 }
 
 export interface ChatMessage {
